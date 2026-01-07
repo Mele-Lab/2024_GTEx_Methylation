@@ -1,7 +1,8 @@
 ### Plot varPart #####
 library(variancePartition)
 first_dir <- "~/"
-setwd(paste0(first_dir, "marenostrum/Projects/GTEx_v8/Methylation/"))
+#setwd(paste0(first_dir, "marenostrum/Projects/GTEx_v8/Methylation/"))
+setwd(paste0(basepath, "/Projects/GTEx_v8/Methylation/"))
 
 # -------------- #
 print(Sys.time())
@@ -56,8 +57,9 @@ for (trait in c('EURv1','SEX2','AGE','BMI')) {
 
 ### merge info with prom/enh 
 Sys.time()
-data_path <- "~/marenostrum/Projects/GTEx_v8/Methylation/Data/"
-annotation <- read.delim(paste0(data_path, "Methylation_Epic_gene_promoter_enhancer_processed.txt"), sep = '\t', header = T)
+#data_path <- "~/marenostrum/Projects/GTEx_v8/Methylation/Data/"
+#annotation <- read.delim(paste0(data_path, "Methylation_Epic_gene_promoter_enhancer_processed.txt"), sep = '\t', header = T)
+annotation <- read.delim(paste0(basepath, "Projects/GTEx_v8/Methylation/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt"), sep = '\t', header = T)
 Sys.time()
 
 #Running a different analysis per promoter, enhancer and gene body
@@ -284,7 +286,7 @@ ggplot(betas_locations_m, aes(x = Proportion, fill=Variable)) +
 dev.off()
 
 ### enrichments #####
-my_fisher <- function(type){
+my_fisher <- function(type, betas_locations_m=betas_locations_m){
   #             DS      Not DS
   # type
   # other_types
@@ -411,9 +413,110 @@ g2 <- ggplot(results_fisher) + geom_col(aes(sample_size, region), width = 0.6, c
 library(ggpubr)
 p <- ggarrange(g, g2, labels = c("A", "B"),
                common.legend = TRUE, legend = "right", widths = c(0.8,0.3))
-pdf(file = paste0("~/marenostrum/Projects/GTEx_v8/Methylation/Plots/Enrichment_location_tissue_variable.pdf"), w = 8, h = 3)
+pdf(file = paste0(basepath, "/Projects/GTEx_v8/Methylation/Plots/Enrichment_location_tissue_variable.pdf"), w = 8, h = 3)
 print(p)
 dev.off()
+
+# now we do the same plots but classified by CpG content 
+
+mu_cpg$Type
+
+pdf(file = paste0(basepath, '/Projects/GTEx_v8/Methylation/Plots/',"/VarPart_ann_main2.v3_cpg.pdf"), w = 6, h = 3)
+ggplot(betas_locations_cpg, aes(x = Proportion, fill=Type)) + 
+  geom_density(alpha=0.7) +
+  scale_fill_brewer(palette="Dark2") +
+  geom_vline(data=mu_cpg, aes(xintercept=grp.mean, color=Type),
+             linetype="dashed") +
+    geom_text(
+      data = mu_cpg,
+      aes(
+        x = Inf,
+        y = Inf,
+        label = round(grp.mean, 3),
+        color = Type, 
+      ),
+      hjust = 1.05,
+      size = 5, 
+      position = position_nudge()
+    )+
+  scale_color_brewer(palette="Dark2") +
+  facet_grid( ~ Variable)+
+  theme_bw()
+dev.off()
+
+
+
+library(reshape2)
+annotation_cpg <- read.csv(paste0(basepath, "Projects/GTEx_v8/Methylation/Data/GPL21145_MethylationEPIC_15073387_v-1-0_processed.csv"))
+beta_df$Type_cpg <- 'Open_sea'
+beta_df$Type_cpg[rownames(beta_df) %in% annotation_cpg[annotation_cpg$Relation_to_UCSC_CpG_Island=="Island","IlmnID"]] <- "Island"
+beta_df$Type_cpg[rownames(beta_df) %in% annotation_cpg[annotation_cpg$Relation_to_UCSC_CpG_Island %in% c("S_Shelf", "N_Shelf"),"IlmnID"]] <- "Shelf"
+beta_df$Type_cpg[rownames(beta_df) %in% annotation_cpg[annotation_cpg$Relation_to_UCSC_CpG_Island %in% c("S_Shore", "N_Shore"),"IlmnID"]] <- "Shore"
+table(beta_df$Type_cpg)
+betas_locations_cpg <- melt(data = beta_df[,c("cpg", "SUBJID", "Tissue", "Type_cpg")], id.vars = c('cpg','Type_cpg'),
+                          variable.name = 'Variable', value.name = 'Proportion')
+colnames(betas_locations_cpg)[2] <- "Type"
+head(betas_locations_cpg)
+
+library("dplyr")
+mu_cpg <- betas_locations_cpg %>% 
+  group_by(Variable , Type) %>%
+  summarise(grp.mean = mean(Proportion))
+mu_cpg
+
+betas_locations_cpg$Type = factor(betas_locations_cpg$Type, levels=c('Island','Shelf','Shore','Open_sea'))
+mu_cpg$Type = factor(mu_cpg$Type, levels=c('Island','Shelf','Shore','Open_sea'))
+
+families <- unique(betas_locations_cpg$Type)
+fisher_results_cpg <- lapply(families, function(region) my_fisher(region, betas_locations_cpg))
+names(fisher_results_cpg) <- families
+
+results_fisher <- read_data(families, fisher_results_cpg)
+
+results_fisher$sig[results_fisher$sig =="Sig"] <- "FDR < 0.05"
+results_fisher$sig[results_fisher$sig =="not Sig"] <- "FDR >= 0.05"
+results_fisher$sig <- factor(results_fisher$sig, levels=c("FDR >= 0.05", "FDR < 0.05"))
+results_fisher$region <- factor(results_fisher$region, levels=rev(c('Island','Shelf','Shore','Open_sea')))
+g <- ggplot(results_fisher, aes(x=log2(oddsRatio), y=region, colour=sig)) +
+  geom_errorbar(aes(xmin=log2(CI_down), xmax=log2(CI_up)), width=.3) +
+  geom_vline(xintercept = 0) +
+  #xlim(0,20) + #Only for Lung to show the 0
+  geom_point(size=3) + ylab('') + theme_bw() +
+  #scale_colour_manual(values=c("#BFC0C0", "#E26D5C")) +
+  scale_colour_manual(values=c("#E26D5C")) +
+  xlab("log2(Odds ratio)") +
+  theme(legend.title = element_blank(),
+        axis.text.x = element_text(colour="black", size=13),
+        axis.text.y = element_text(colour="black", size=14),
+        legend.text = element_text(colour="black", size=13),
+        axis.title.x = element_text(size=16),
+        legend.spacing.y = unit(-0.05, "cm"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(colour = "black", linewidth=1)) #+
+  scale_y_discrete(breaks=c("Other","Gene_Associated","Enhancer_Associated","Promoter_Associated"),
+                   labels=c("Intergenic","Gene-Associated","Enhancer-Associated","Promoter-Associated"))# + xlim(0, 3)
+
+
+  #Plot sample sizes:
+  
+  g2 <- ggplot(results_fisher) + geom_col(aes(sample_size, region), width = 0.6, col='#A39A92') +
+    theme_classic() + xlab("Number of DMPs") + ylab("") +
+    theme(legend.position = "none",
+          axis.text.x = element_text(colour="black", size=13),
+          axis.text.y=element_blank(),
+          axis.title.x = element_text(size=16)) #+
+    scale_y_discrete(breaks=c("Other","Gene_Associated","Enhancer_Associated","Promoter_Associated"),
+                     labels=c("Intergenic","Gene-Associated","Enhancer-Associated","Promoter-Associated")) +# + xlim(0, 3)
+    scale_x_continuous(breaks=c(0, 70000, 200000)) #Only for lung
+  
+  library(ggpubr)
+  p <- ggarrange(g, g2, labels = c("A", "B"),
+                 common.legend = TRUE, legend = "right", widths = c(0.8,0.3))
+  pdf(file = paste0(basepath, "/Projects/GTEx_v8/Methylation/Plots/Enrichment_location_cpg_tissue_variable.pdf"), w = 8, h = 3)
+  print(p)
+  dev.off()
+
 
 library(missMethyl)
 
