@@ -2,6 +2,7 @@
 library(variancePartition)
 first_dir <- "~/"
 #setwd(paste0(first_dir, "marenostrum/Projects/GTEx_v8/Methylation/"))
+basepath <- "/Users/mariasopenar/cluster/"
 setwd(paste0(basepath, "/Projects/GTEx_v8/Methylation/"))
 
 # -------------- #
@@ -24,7 +25,7 @@ dev.off()
 
 #### read DM results ####
 results_DML <- lapply(tissues, function(tis) 
-  readRDS(paste0("~/marenostrum/Projects/GTEx_v8/Methylation/Tissues/",tis,"/DML_results_5_PEERs_continous.rds")))
+  readRDS(paste0("/Projects/GTEx_v8/Methylation/Tissues/",tis,"/DML_results_5_PEERs_continous.rds")))
 names(results_DML) <- tissues
 
 results_DML_all <- lapply(tissues, function(tis) 

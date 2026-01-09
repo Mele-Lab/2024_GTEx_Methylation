@@ -55,7 +55,7 @@ dmp <- dmp[dmp$cpg %in% mqtl$cpg, ] # that have mQTLs
 dmp <- dmp[dmp$cpg %in% annotation[annotation$Type %in% c("Promoter_Associated", "Enhancer_Associated"), "IlmnID"],] # that are in enhancers and promoters
 
 # save DMPs filtered by having an mQTL and located in promoters and enhancers 
-saveRDS(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/DMP_filtered_mQTL_Promoter_Enhancer.rds")
+saveRDS(dmp, paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/DMP_filtered_mQTL_Promoter_Enhancer.rds"))
 
 
 #snp parsing
