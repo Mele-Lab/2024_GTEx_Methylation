@@ -12,6 +12,7 @@ library(JASPAR2022)
 library(TFBSTools)
 library(seqinr)
 library(data.table)
+library(BiocParallel)
 
 
 basepath <- "/gpfs/projects/bsc83/"
@@ -34,7 +35,7 @@ cat(Sys.time(), "\n")
 # annotation positions
 annotation <- read.delim(paste0(basepath, "Projects/GTEx_v8/Methylation/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt"), sep = '\t', header = T)
 
-#read DMPs
+# #read DMPs
 dnp_list <-  readRDS(paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/DML_results_5_PEERs_continous.rds"))
 dmp <- do.call(rbind, Map(function(df, nm) {df$trait <- nm
 df$cpg <-rownames(df)
@@ -54,7 +55,7 @@ mqtl$cpg <- sub(":.*", "", mqtl$V1)
 dmp <- dmp[dmp$cpg %in% mqtl$cpg, ] # that have mQTLs
 dmp <- dmp[dmp$cpg %in% annotation[annotation$Type %in% c("Promoter_Associated", "Enhancer_Associated"), "IlmnID"],] # that are in enhancers and promoters
 
-# save DMPs filtered by having an mQTL and located in promoters and enhancers 
+# save DMPs filtered by having an mQTL and located in promoters and enhancers
 saveRDS(dmp, paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/DMP_filtered_mQTL_Promoter_Enhancer.rds"))
 
 
@@ -66,9 +67,10 @@ snps[, pos := as.integer(sub("^[^_]+_([0-9]+)_.*", "\\1", snp))]
 snps[, ref := sub("^[^_]+_[0-9]+_([ACGT])_.*", "\\1", snp)]
 snps[, alt := sub("^[^_]+_[0-9]+_[ACGT]_([ACGT])_.*", "\\1", snp)]
 snps <- snps[nchar(ref) == 1 &nchar(alt) == 1]
+saveRDS(dmp, paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/SNPs_filtered_mQTL_Promoter_Enhancer.rds"))
 
 
-#generate FASTA sequences to input to FIMO 
+#generate FASTA sequences to input to FIMO
 get_snp_seq <- function(chr, pos, allele, flank = 25) {
   seq <- getSeq(BSgenome.Hsapiens.UCSC.hg38,
                 names = chr,
@@ -91,10 +93,13 @@ alt_fa <- paste0("/gpfs/scratch/bsc83/MN4/bsc83/bsc83535/GTEx/v9/FIMO/", tissue,
 #   }
 #   close(con)
 # }
+param <- MulticoreParam(workers = 16)
 
-ref_seqs <- mapply(get_snp_seq, snps$chr, snps$pos, snps$ref)
+ref_seqs <- unlist( bplapply(seq_len(nrow(snps)), function(i) get_snp_seq(snps$chr[i], snps$pos[i], snps$ref[i]),BPPARAM = param), use.names = FALSE)
+alt_seqs <- unlist(bplapply(seq_len(nrow(snps)),function(i) get_snp_seq(snps$chr[i], snps$pos[i], snps$alt[i]),BPPARAM = param),use.names = FALSE)
+
 #ref_seqs <- paste0(snps$snp, "_alt")
-alt_seqs <- mapply(get_snp_seq, snps$chr, snps$pos, snps$alt)
+#alt_seqs <- mapply(get_snp_seq, snps$chr, snps$pos, snps$alt)
 
 write.fasta(as.list(ref_seqs),names=snps$snp, ref_fa, open = "w", nbchar = 60, as.string = FALSE)
 write.fasta(as.list(alt_seqs),names=snps$snp, alt_fa, open = "w", nbchar = 60, as.string = FALSE)
@@ -140,7 +145,9 @@ all_hits[, status := fifelse(
 
 
 #get the proportion per tissue
-disrupted_cpgs <- unique(snps$cpg[snps$snp %in% all_hits[status %in% c("loss","gain")]$sequence_name])
+dmp <- readRDS(paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/DMP_filtered_mQTL_Promoter_Enhancer.rds"))
+snps <- readRDS(paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/SNPs_filtered_mQTL_Promoter_Enhancer.rds"))
+disrupted_cpgs <- unique(snps$snp[snps$snp %in% all_hits[status %in% c("loss","gain")]$sequence_name])
 proportion <- length(disrupted_cpgs) / nrow(dmp)
 cat("Proportion of disrupted DMPs in tissue", tissue, "=", prop_disrupted, "\n")
 
