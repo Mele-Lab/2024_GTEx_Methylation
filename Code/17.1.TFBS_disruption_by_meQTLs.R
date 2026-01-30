@@ -51,15 +51,21 @@ mqtl <- fread(paste0(inpath_mqtls, tissue, ".mQTLs.conditional.txt.gz"))
 mqtl <- mqtl[mqtl$V7 < 0.05 & abs(mqtl$V3) < 250000]
 mqtl$cpg <- sub(":.*", "", mqtl$V1)
 
+
 #filter dmps
+print("Filtering DMPs")
 dmp <- dmp[dmp$cpg %in% mqtl$cpg, ] # that have mQTLs
 dmp <- dmp[dmp$cpg %in% annotation[annotation$Type %in% c("Promoter_Associated", "Enhancer_Associated"), "IlmnID"],] # that are in enhancers and promoters
 
 # save DMPs filtered by having an mQTL and located in promoters and enhancers
 saveRDS(dmp, paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/DMP_filtered_mQTL_Promoter_Enhancer.rds"))
 
+# Reduce set to the lead SNP per CpG
+setorder(mqtl, cpg, V7)          # smallest FDR first (replace with p-value if you have it)
+mqtl <- mqtl[, .SD[1], by=cpg] 
 
 #snp parsing
+print("Filtering SNPs")
 snps <- unique(mqtl[mqtl$cpg %in% dmp$cpg, .(snp = V2, cpg)])
 #add info
 snps[, chr := sub("_.*", "", snp)]
@@ -67,9 +73,12 @@ snps[, pos := as.integer(sub("^[^_]+_([0-9]+)_.*", "\\1", snp))]
 snps[, ref := sub("^[^_]+_[0-9]+_([ACGT])_.*", "\\1", snp)]
 snps[, alt := sub("^[^_]+_[0-9]+_[ACGT]_([ACGT])_.*", "\\1", snp)]
 snps <- snps[nchar(ref) == 1 &nchar(alt) == 1]
-saveRDS(dmp, paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/SNPs_filtered_mQTL_Promoter_Enhancer.rds"))
+saveRDS(snps, paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/SNPs_filtered_mQTL_Promoter_Enhancer.rds"))
 
 
+
+
+print("Generating FASTA...")
 #generate FASTA sequences to input to FIMO
 get_snp_seq <- function(chr, pos, allele, flank = 25) {
   seq <- getSeq(BSgenome.Hsapiens.UCSC.hg38,
@@ -106,7 +115,7 @@ write.fasta(as.list(alt_seqs),names=snps$snp, alt_fa, open = "w", nbchar = 60, a
 # write_fasta(paste0(snps$snp, "_ref"), ref_seqs, ref_fa)
 # write_fasta(paste0(snps$snp, "_alt"), alt_seqs, alt_fa)
 
-
+print("Running FIMO...")
 # Run FIMO
 motif_file <- "/gpfs/scratch/bsc83/MN4/bsc83/bsc83535/GTEx/v9/JASPAR2022_CORE_vertebrates_non-redundant_pfms_meme.txt"
 outpath_ref <- paste0("/gpfs/scratch/bsc83/MN4/bsc83/bsc83535/GTEx/v9/FIMO/", tissue, "_ref")
@@ -115,6 +124,10 @@ outpath_alt <- paste0("/gpfs/scratch/bsc83/MN4/bsc83/bsc83535/GTEx/v9/FIMO/", ti
 system(paste( "fimo --thresh 1e-4 --oc ",outpath_ref,  motif_file, ref_fa))
 system(paste( "fimo --thresh 1e-4 --oc",outpath_alt, motif_file, alt_fa))
 
+print("FIMO done")
+
+
+print("Get FIMO stats")
 #Read FIMO results 
 fimo_ref <- read.table(paste0("/gpfs/scratch/bsc83/MN4/bsc83/bsc83535/GTEx/v9/FIMO/", tissue, "_ref/fimo.tsv"), header = T)
 fimo_alt <- read.table(paste0("/gpfs/scratch/bsc83/MN4/bsc83/bsc83535/GTEx/v9/FIMO/", tissue, "_alt/fimo.tsv"), header = T)
