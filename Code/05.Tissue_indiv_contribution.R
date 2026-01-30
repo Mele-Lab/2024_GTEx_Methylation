@@ -66,7 +66,7 @@ param = SnowParam(40, "SOCK", progressbar=TRUE)
 register(param)
 
 print('create model')
-if(model="subj_tissue"){
+if(model=="subj_tissue"){
   form <- ~ PEER1 + PEER2 + PEER3 + PEER4 + PEER5 + (1 | SUBJID) + (1 | Tissue)
 }else if(model =="subj"){
   form <- ~ PEER1 + PEER2 + PEER3 + PEER4 + PEER5 + (1 | SUBJID)
