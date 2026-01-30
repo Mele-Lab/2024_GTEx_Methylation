@@ -7,7 +7,8 @@ setwd(paste0(first_dir, "/projects/bsc83/Projects/GTEx_v8/Methylation/"))
 print(Sys.time())
 #-------------- #
 
-tissues <- list.dirs("Tissues/", full.names = F)[-1]
+tissues <- c("BreastMammaryTissue", "ColonTransverse" ,"KidneyCortex", "Lung", "MuscleSkeletal" ,"Ovary", "Prostate", "Testis", "WholeBlood")
+#tissues <- list.dirs("Tissues/", full.names = F)[-1]
 # tissues <- tissues[tissues!="KidneyCortex"]
 # tissues <- tissues[33:length(tissues)]
 
