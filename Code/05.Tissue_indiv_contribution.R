@@ -11,6 +11,14 @@ tissues <- list.dirs("Tissues/", full.names = F)[-1]
 # tissues <- tissues[tissues!="KidneyCortex"]
 # tissues <- tissues[33:length(tissues)]
 
+shhh <- suppressPackageStartupMessages
+shhh(library(optparse))
+option_list = list(
+  make_option(c("--model"), action="store", default=NA, type='character'))
+opt = parse_args(OptionParser(option_list=option_list))
+
+model <- opt$model
+
 #### reading metadata ####
 metadata <- lapply(tissues, function(tissue) readRDS(paste0("Tissues/", tissue, "/metadata.rds")))
 names(metadata) <- tissues
@@ -57,7 +65,15 @@ param = SnowParam(40, "SOCK", progressbar=TRUE)
 register(param)
 
 print('create model')
-form <- ~ PEER1 + PEER2 + PEER3 + PEER4 + PEER5 + (1 | SUBJID) + (1 | Tissue)
+if(model="subj_tissue"){
+  form <- ~ PEER1 + PEER2 + PEER3 + PEER4 + PEER5 + (1 | SUBJID) + (1 | Tissue)
+}else if(model =="subj"){
+  form <- ~ PEER1 + PEER2 + PEER3 + PEER4 + PEER5 + (1 | SUBJID)
+}else if(model =="tissue_interaction"){
+  form <- ~ PEER1 + PEER2 + PEER3 + PEER4 + PEER5 + (1 | Tissue)+(1 | Tissue x SUBJID)
+}else if(model =="subj_tissue_interaction"){
+  form <- ~ PEER1 + PEER2 + PEER3 + PEER4 + PEER5 + (1 | SUBJID) + (1 | Tissue)+(1 | Tissue x SUBJID)
+}
 print(form)
 
 ### run in chuncks
@@ -69,9 +85,9 @@ for (i in c(1:length(dfs))) {
   vp = fitExtractVarPartModel(as.matrix(dfs[[i]]), form, metadata_df)
   pl <- plotVarPart( sortCols(vp))
   
-  saveRDS(vp, paste0(i,'_chunck_var_part.rds'))
+  saveRDS(vp, paste0(i,'_chunck_var_part_', model'.rds'))
   
-  pdf(file = paste0("Plots/",i,"_chunckvar_part.pdf"), w = 6, h = 3.5)
+  pdf(file = paste0("Plots/",i,"_chunckvar_part_", model, ".pdf"), w = 6, h = 3.5)
   print(pl)
   dev.off()
 }
