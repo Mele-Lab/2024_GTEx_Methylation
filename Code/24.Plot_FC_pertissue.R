@@ -10,12 +10,15 @@ first_dir <- "marenostrum/"
 
 project_path <- paste0(first_dir, "Projects/GTEx_v8/Methylation/")
 
+project_path <- paste0(basepath, "Projects/GTEx_v8/Methylation/")
+
+
 tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate", "BreastMammaryTissue", "MuscleSkeletal", "KidneyCortex", "Testis", "WholeBlood")
 names <- c("Age", "Ancestry")
 traits_to_use <- c('EURv1','AGE','SEX2')
 
 results_DML <- lapply(tissues, function(tis) 
-  readRDS(paste0("~/marenostrum/Projects/GTEx_v8/Methylation/Tissues/",tis,"/DML_results_5_PEERs_continous.rds")))
+  readRDS(paste0(project_path,"/Tissues/",tis,"/DML_results_5_PEERs_continous.rds")))
 names(results_DML) <- tissues
 
 final_df <- list()
@@ -51,7 +54,9 @@ library(ggplot2)
 #   ylab('')#650x570
 # dev.off()
 
-pdf('marenostrum/Projects/GTEx_v8/Methylation/Plots/Distribution_FC_per_tissue.pdf', width = 12, height = 2.5)
+#pdf('marenostrum/Projects/GTEx_v8/Methylation/Plots/Distribution_FC_per_tissue.pdf', width = 12, height = 2.5)
+pdf(paste0(basepath, '/Projects/GTEx_v8/Methylation/Plots/Distribution_FC_per_tissue.pdf'), width = 12, height = 2.5)
+
 ggplot(final_df[final_df$trait != 'BMI',], aes(abs(logFC), col=trait, 
                                      group=trait)) + 
   stat_ecdf(geom = "step")+ 
@@ -61,6 +66,64 @@ ggplot(final_df[final_df$trait != 'BMI',], aes(abs(logFC), col=trait,
        y = "Empirical Cumulative density", x="abs(logFC)")+
   theme_classic()
 dev.off()
+
+
+# Scale AGE effect sizes to 10 years (so it's comparable to binary traits)
+final_df$logFC_scaled <- final_df$logFC
+final_df$logFC_scaled[final_df$trait == "AGE"] <- final_df$logFC_scaled[final_df$trait == "AGE"] * 10
+
+pdf(paste0(basepath, '/Projects/GTEx_v8/Methylation/Plots/Distribution_FC_per_tissue_Age10y.pdf'), width = 12, height = 2.5)
+
+ggplot(final_df[final_df$trait != 'BMI',], aes(abs(logFC_scaled), col=trait, 
+                                               group=trait)) + 
+  stat_ecdf(geom = "step")+ 
+  facet_grid(. ~ tissue) + 
+  scale_color_manual(values = c('#3D7CD0','#F0AE21','#3B734E'))+
+  labs(title="",
+       y = "Empirical Cumulative density", x="abs(logFC)")+
+  theme_classic()
+dev.off()
+
+
+# Use VarPar estimates to compare traits 
+sex_tissues <- c('Ovary','Prostate','Testis')
+
+get_tissue_mean_variation <- function(tissue){
+  print(tissue)
+  
+  hier_res <- readRDS(paste0(project_path, "varPart/",tissue, "_var_part.rds"))
+  
+  if(tissue %in% sex_tissues){
+    tissue_methylation_variation_explained <- hier_res[,traits_prev[-2]]
+  }else{
+    tissue_methylation_variation_explained <- hier_res[,traits_prev]
+  }
+  dt <- as.data.table(tissue_methylation_variation_explained, keep.rownames = "feature")
+  dt <- melt(dt, id.vars="feature", variable.name="trait", value.name="var_explained")
+  dt$tissue <- tissue
+  return(dt)  
+}
+
+traits_prev <- c('EURv1','SEX','AGE','BMI')
+tissue_methylation_variation_explained_all <-rbindlist(lapply(tissues, function(tissue) get_tissue_mean_variation(tissue)))
+
+
+pdf(paste0(basepath, '/Projects/GTEx_v8/Methylation/Plots/Distribution_VarPar_per_tissue.pdf'), width = 12, height = 2.5)
+
+ggplot(tissue_methylation_variation_explained_all[tissue_methylation_variation_explained_all$trait != 'BMI',], aes(var_explained, col=trait, 
+                                               group=trait)) + 
+  stat_ecdf(geom = "step")+ 
+  facet_grid(. ~ tissue) + 
+  scale_color_manual(values = c("AGE"='#3D7CD0',"EURv1"='#F0AE21',"SEX"='#3B734E'))+
+  labs(title="",
+       y = "Empirical Cumulative density", x="Variance Partition")+
+  theme_classic()
+dev.off()
+
+
+
+
+
 
 ##### cpg examples of outlier cpgs #####
 annotation <- read.delim('~/marenostrum/Projects/GTEx_v8/Methylation/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt')
@@ -314,3 +377,8 @@ ggplot(final_df, aes(abs(DiffLevene), col=trait,
        y = "Empirical Cumulative density", x="abs(logFC)")+
   theme_classic()
 dev.off()
+
+
+#P
+
+

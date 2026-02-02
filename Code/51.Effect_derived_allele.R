@@ -102,3 +102,28 @@ summ[, p_adj := p.adjust(p_value, method = "BH")]
 
 print(summ[order(p_adj)])
 
+
+
+## are me-QTLs associated to ancestry-DMPs positively selected? 
+
+dnp_list <-  readRDS(paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/DML_results_5_PEERs_continous.rds"))
+dmp <- do.call(rbind, Map(function(df, nm) {df$trait <- nm
+df$cpg <-rownames(df)
+return(df)}, dnp_list, names(dnp_list)))
+
+dmp_signif <- dmp[dmp$adj.P.Val < 0.05,]
+dmp_signif <- dmp[dmp$trait =="EURv1",]
+
+#dmps located in enhancers
+dmp_signif <- dmp_signif[dmp_signif$cpg %in% cpg_anno[cpg_anno$Type %in% c("Promoter_Associated", "Enhancer_Associated"), "IlmnID"],] # that are in enhancers and promoters
+
+# get lung enhancers with DMPs & meQTL
+dmp_meqtl <- dmp_signif[dmp_signif$cpg %in% mqtl$cpg, ] # that have mQTLs
+
+# get lung enhances with DMP wo meQTL
+
+
+
+
+
+
