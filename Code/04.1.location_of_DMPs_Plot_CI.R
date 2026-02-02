@@ -307,8 +307,12 @@ read_data <- function(variables, data, trait){ #Function to prepare data to plot
 }
 
 ##### plot shared positions
-hypo <- readRDS('~/marenostrum/Projects/GTEx_v8/Methylation/Tissues/enrichment_chromhmm_hypo_shared_CI.continous.2.rds')
-hyper <- readRDS('~/marenostrum/Projects/GTEx_v8/Methylation/Tissues/enrichment_chromhmm_hyper_shared_CI.continous.2.rds')
+# hypo <- readRDS('~/marenostrum/Projects/GTEx_v8/Methylation/Tissues/enrichment_chromhmm_hypo_shared_CI.continous.2.rds')
+# hyper <- readRDS('~/marenostrum/Projects/GTEx_v8/Methylation/Tissues/enrichment_chromhmm_hyper_shared_CI.continous.2.rds')
+
+hypo <- readRDS(paste0(basepath,'/Projects/GTEx_v8/Methylation/Tissues/enrichment_chromhmm_hypo_shared_CI.continous.2.rds'))
+hyper <- readRDS(paste0(basepath,'/Projects/GTEx_v8/Methylation/Tissues/enrichment_chromhmm_hyper_shared_CI.continous.2.rds'))
+
 
 colors_traits <- list('Age'=c('#3D7CD0','#B4D6F6'),
                       'Sex'=c('#3B734E','#89AA94'),
@@ -365,3 +369,71 @@ library(ggpubr)
     dev.off()
   }
 
+
+# plot enrichment for tissue-specific positions 
+read_data_simple <- function(regions, fisher_list) {
+  odds_ratio <- sapply(regions, function(r) fisher_list[[r]][["f"]]$estimate)
+  pvals <- sapply(regions, function(r) fisher_list[[r]][["f"]]$p.value)
+  adj.P.Val <- p.adjust(pvals, method="BH")
+  CI_down <- sapply(regions, function(r) fisher_list[[r]][["f"]]$conf.int[1])
+  CI_up <- sapply(regions, function(r) fisher_list[[r]][["f"]]$conf.int[2])
+  sample_size <- sapply(regions, function(r) fisher_list[[r]][["m"]])
+  
+  dt <- data.frame(region=regions,
+                   oddsRatio=odds_ratio,
+                   adjPvalue=adj.P.Val,
+                   CI_down=CI_down,
+                   CI_up=CI_up,
+                   sample_size=sample_size)
+  dt$sig <- ifelse(dt$adjPvalue < 0.05, "FDR < 0.05", "FDR >= 0.05")
+  dt$sig <- factor(dt$sig, levels=c("FDR >= 0.05", "FDR < 0.05"))
+  dt$region <- factor(dt$region, levels=rev(regions))
+  dt
+}
+
+library(ggplot2)
+library(ggpubr)
+
+families <- c('Enh','EnhBiv','Het','Quies','ReprPC','TSS','TssBiv','Tx','ZNF/Rpts')
+dt_AA <- read_data_simple(families, fisher_results_nonshared[["AA"]])
+dt_AA$type <- "AA"
+dt_EA <- read_data_simple(families, fisher_results_nonshared[["EA"]])
+dt_EA$type <- "EA"
+dt <- rbind(dt_EA, dt_AA)
+
+g <- ggplot(dt, aes(x=log2(oddsRatio), y=region, alpha=sig,color=type)) +
+  geom_errorbar(aes(xmin=log2(CI_down), xmax=log2(CI_up)), width=.3) +
+  geom_vline(xintercept = 0) +
+  geom_point(size=3) + ylab('') + theme_bw() +
+  scale_colour_manual(values=rev(colors_traits[["Ancestry"]])) +
+  xlab("log2(Odds ratio)") +
+  scale_alpha_discrete(range = c(0.4, 1), drop = FALSE) +
+  theme(legend.title = element_blank(),
+        axis.text.x = element_text(colour="black", size=13),
+        axis.text.y = element_text(colour="black", size=14),
+        legend.text = element_text(colour="black", size=13),
+        axis.title.x = element_text(size=16),
+        legend.spacing.y = unit(-0.05, "cm"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(colour = "black", linewidth=1)) +
+  scale_y_discrete(breaks=c("Enh","EnhBiv","Het","Quies","ReprPC","TSS","TssBiv","Tx","ZNF/Rpts"),
+                   labels=c("Enhancer","Enhancer Bivalent","Heterochromatin","Quiescent","Repressed Polycomb","TSS","TSS Bivalent","Transcription","ZNF & Repeats"))+
+  ggtitle("Tissue-specific DMPs")# + xlim(0, 3)
+
+
+g2 <- ggplot(dt) + geom_col(aes(sample_size, region, fill=type), width = 0.6) +
+  theme_classic() + xlab("Number of DMPs") + ylab("") +
+  scale_fill_manual(values=rev(colors_traits[["Ancestry"]])) +
+  theme(legend.position = "none",
+        axis.text.x = element_text(colour="black", size=13),
+        axis.text.y=element_blank(),
+        axis.title.x = element_text(size=16)) +
+  scale_y_discrete(breaks=c("Enh","EnhBiv","Het","Quies","ReprPC","TSS","TssBiv","Tx","ZNF/Rpts"),
+                   labels=c("Enhancer","Enhancer Bivalent","Heterochromatin","Quiescent","Repressed Polycomb","TSS","TSS Bivalent","Transcription","ZNF & Repeats")) #+
+
+p <- ggarrange(g, g2, widths=c(0.8, 0.3))
+pdf(paste0(basepath, "/Projects/GTEx_v8/Methylation/Plots/chromhmm/enrichment_nonshared.pdf"),
+    w=8, h=4)
+print(p)
+dev.off()
