@@ -118,7 +118,7 @@ model_function <- function(mod){
 res_2 <- model_function(mod_2) #I would use 5 PEERs
 
 saveRDS(res_2, paste0(project_path, "/Tissues/", tissue, "/DML_results_5_PEERs_Ancestry_",ancestry, "_remove_admixed_", remove_admixed,".peer.rds")) #This is the final model we are using
-print(paste0("Using 5 PEERs, ",ancestry, "ancestry and remove admixed individuals", remove_admixed, ":"))
+print(paste0("Using 5 PEERs, ",ancestry, " ancestry and remove admixed individuals ", remove_admixed, ":"))
 print(paste0("  EURv1: ", sum(res_2$EURv1$adj.P.Val<0.05)))
 print(paste0("  Age: ", sum(res_2$AGE$adj.P.Val<0.05)))
 
