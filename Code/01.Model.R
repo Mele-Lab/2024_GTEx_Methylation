@@ -12,14 +12,21 @@ parser <- add_option(parser, opt_str=c("-t", "--tissue"), type="character",
                      help="Tissue")
 pareser <- add_option(parser, opt_str=c("-a", "--ancestry"), type="character",
                       dest="ancestry",
-                      help="Ancestry continous / categorical / remove highly admixed individuals")
+                      help="Ancestry continous / categorical")
+pareser <- add_option(parser, opt_str=c("-r", "--remove_admixed"), type="logical",
+                      dest="remove_admixed",
+                      help="Remove")
 options=parse_args(parser)
 tissue=options$tissue
 ancestry=options$ancestry
+remove_admixed <- options$remove_admixed
+
+
 # tissue <- "Lung"
 
 print(tissue)
 #first_dir <- "~/marenostrum/"
+#first_dir <- "/Users/mariasopenar/cluster"
 first_dir <- "/gpfs/"
 project_path <- paste0(first_dir, "/projects/bsc83/Projects/GTEx_v8/Methylation/")
 #project_path <- paste0(first_dir, "/Projects/GTEx_v8/Methylation/")
@@ -35,9 +42,21 @@ print("Reading metadata")
 metadata <- readRDS(paste0(project_path, 'Tissues/', tissue, "/metadata.rds"))
 
 print("Reading Admixture results")
-admixture_ancestry <- read.table('/gpfs/scratch/bsc83/MN4/bsc83/bsc83535/GTEx/v8/genotype_data/admixture_inferred_ancestry.txt')
-colnames(admixture_ancestry) <- c('SUBJID','AFRv1','EURv1','inferred_ancestry','AFRv2','EURv2')
-metadata <- merge(metadata, admixture_ancestry[,c("SUBJID","EURv1")], by='SUBJID')
+admixture_ancestry <- read.table(paste0(project_path, "/admixture_inferred_ancestry.txt"))
+colnames(admixture_ancestry) <- c('SUBJID','AFRv1','Ancestry_continous','inferred_ancestry','AFRv2','EURv2')
+metadata <- merge(metadata, admixture_ancestry[,c("SUBJID","Ancestry_continous")], by='SUBJID')
+
+#we can exclude admixed individuals (labeled as AMR in GTEx)
+if(remove_admixed==T){
+  metadata <- metadata[metadata$Ancestry != "AMR", ]
+}
+
+#we can model ancestry as continous or categorical 
+if(ancestry=="continous"){
+ colnames(metadata) <- gsub("Ancestry_continous", "EURv1", colnames(metadata))
+}else{
+  colnames(metadata) <- gsub("Ancestry", "EURv1",colnames(metadata))
+}
 
 metadata$SEX <- as.factor(metadata$SEX)
 if(length(levels(metadata$SEX))==1){
@@ -55,10 +74,8 @@ metadata$SUBJID <- NULL
 
 ### make sure order is the same
 beta <- beta[,rownames(metadata)]
-
 probes <- rownames(beta)
-
-metadata_2 <- metadata[,c("PEER1", "PEER2", "PEER3", "PEER4", "PEER5","PEER18","PEER9","PEER8", individual_variables)]
+metadata_2 <- metadata[,c("PEER1", "PEER2", "PEER3", "PEER4", "PEER5", individual_variables)]
 
 print("metadata is prepared")
 
@@ -100,8 +117,8 @@ model_function <- function(mod){
 
 res_2 <- model_function(mod_2) #I would use 5 PEERs
 
-saveRDS(res_2, paste0(project_path, "/Tissues/", tissue, "/DML_results_5_PEERs_continous.peer.rds")) #This is the final model we are using
-print("Using 5 PEERs:")
+saveRDS(res_2, paste0(project_path, "/Tissues/", tissue, "/DML_results_5_PEERs_Ancestry_",ancestry, "_remove_admixed_", remove_admixed,".peer.rds")) #This is the final model we are using
+print(paste0("Using 5 PEERs, ",ancestry, "ancestry and remove admixed individuals", remove_admixed, ":"))
 print(paste0("  EURv1: ", sum(res_2$EURv1$adj.P.Val<0.05)))
 print(paste0("  Age: ", sum(res_2$AGE$adj.P.Val<0.05)))
 
