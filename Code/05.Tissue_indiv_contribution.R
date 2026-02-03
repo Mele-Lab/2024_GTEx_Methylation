@@ -25,7 +25,16 @@ metadata <- lapply(tissues, function(tissue) readRDS(paste0("Tissues/", tissue, 
 names(metadata) <- tissues
 
 #### reading beta values ####
-beta <- lapply(tissues, function(tissue) readRDS(paste0("Tissues/", tissue, "/data.rds")))
+library(parallel)
+
+beta <- mclapply(
+  tissues,
+  function(tissue) {
+    readRDS(file.path("Tissues", tissue, "data.rds"))
+  },
+  mc.cores = min(length(tissues), detectCores() - 1)
+)
+
 names(beta) <- tissues
 
 for (tissue in tissues) {
@@ -79,7 +88,7 @@ print(form)
 
 ### run in chuncks
 dfs <- split(as.data.frame(M), (seq(nrow(M))-1) %/% 50000) 
-for (i in c(1:length(l))) {
+for (i in c(1:length(dfs))) {
   print('variance Partition') 
   print(paste0('chunck ',i))
   

@@ -10,8 +10,12 @@ parser <- OptionParser()
 parser <- add_option(parser, opt_str=c("-t", "--tissue"), type="character",
                      dest="tissue",
                      help="Tissue")
+pareser <- add_option(parser, opt_str=c("-a", "--ancestry"), type="character",
+                      dest="ancestry",
+                      help="Ancestry continous / categorical / remove highly admixed individuals")
 options=parse_args(parser)
 tissue=options$tissue
+ancestry=options$ancestry
 # tissue <- "Lung"
 
 print(tissue)
