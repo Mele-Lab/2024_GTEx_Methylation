@@ -75,7 +75,7 @@ var_cpg <- apply(resid_beta, 1, var, na.rm=TRUE)
 # define highly variable CpGs as being at the top 5% 
 thr <- quantile(var_cpg, 0.95, na.rm=TRUE)
 high_var_cpgs <- names(var_cpg)[var_cpg >= thr]
-saveRDS(high_var_cpgs, paste0("varPart/", tissue, "_highly_variable_CpGs.rds"))
+saveRDS(high_var_cpgs, paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs.rds"))
 
 print("Running fisher...")
 # Two-tailed Fisher test
@@ -84,7 +84,7 @@ families <- c('Enh','EnhBiv','Het','Quies','ReprPC','TSS','TssBiv','Tx','ZNF/Rpt
 fisher_results <- lapply(families, function(type) my_fisher(type,tissue,high_var_cpgs, rownames(data) ))
 names(fisher_results) <-families
 
-saveRDS(fisher_results, paste0("varPart/", tissue, "_highly_variable_CpGs_enrichment_chromHMM.rds"))
+saveRDS(fisher_results, paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs_enrichment_chromHMM.rds"))
   
 
 
