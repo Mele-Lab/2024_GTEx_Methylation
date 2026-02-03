@@ -71,22 +71,22 @@ if(model=="subj_tissue"){
 }else if(model =="subj"){
   form <- ~ PEER1 + PEER2 + PEER3 + PEER4 + PEER5 + (1 | SUBJID)
 }else if(model =="tissue_interaction"){
-  form <- ~ PEER1 + PEER2 + PEER3 + PEER4 + PEER5 + (1 | Tissue)+(1 | Tissue x SUBJID)
+  form <- ~ PEER1 + PEER2 + PEER3 + PEER4 + PEER5 + (1 | Tissue)+(1 | Tissue:SUBJID)
 }else if(model =="subj_tissue_interaction"){
-  form <- ~ PEER1 + PEER2 + PEER3 + PEER4 + PEER5 + (1 | SUBJID) + (1 | Tissue)+(1 | Tissue x SUBJID)
+  form <- ~ PEER1 + PEER2 + PEER3 + PEER4 + PEER5 + (1 | SUBJID) + (1 | Tissue)+(1 | Tissue:SUBJID)
 }
 print(form)
 
 ### run in chuncks
 dfs <- split(as.data.frame(M), (seq(nrow(M))-1) %/% 50000) 
-for (i in c(1:length(dfs))) {
+for (i in c(1:length(l))) {
   print('variance Partition') 
   print(paste0('chunck ',i))
   
   vp = fitExtractVarPartModel(as.matrix(dfs[[i]]), form, metadata_df)
   pl <- plotVarPart( sortCols(vp))
   
-  saveRDS(vp, paste0(i,'_chunck_var_part_', model'.rds'))
+  saveRDS(vp, paste0(i,'_chunck_var_part_', model, '.rds'))
   
   pdf(file = paste0("Plots/",i,"_chunckvar_part_", model, ".pdf"), w = 6, h = 3.5)
   print(pl)

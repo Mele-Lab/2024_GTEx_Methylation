@@ -21,12 +21,11 @@ Y_genes <- gene_annotation[gene_annotation$chr=="chrY",]$ensembl.id
 
 # Tissue ----
 tissues<-c("Uterus", "Ovary", "Vagina", "BreastMammaryTissue", "CervixEndocervix", "CervixEctocervix", "FallopianTube")
-possible_analysis<- c("ALL", "SEPARATING_SEX")
+possible_analysis<- c("ALL")
 
 #There are 4 possible analyses:
 # 1. Include all the covariates (structures) in the model and test the interaction with age of one of interest
 # 2. Include one structure of interest in the model and test its interaction with age
-# 3. Include all the structures in the model and do not test the interaction with age
 # 4. Include one structure of interest in the model and do not test its interaction with age
 
 tests<-c("all_cov_inter", "one_cov_inter", "all_cov_no_inter", "one_cov_no_inter")
@@ -63,41 +62,6 @@ for (tissue in tissues){
     sex <- "female"
     filter<-readRDS(paste0("../00.Data/",tissue, "_final_filtered_images.rds"))
     metadata<- metadata_tot[(metadata_tot$Donor %in% filter$Subject.ID),]
-    
-    #Read substructures' proportions
-    #Example data provided only for uterus!!
-    if(tissue =="BreastMammaryTissue"){
-      cell_prop<-read.csv(paste0("~/X/derived_proportions_Craig/", tissue, "/", tissue, "_pivot.csv"))
-      substructures<- c("adipocyte", "lobule", "duct", "stroma", "nerve", "gynecomastoid_hyperplasia")
-      
-    }else if(tissue == "Ovary"){
-      cell_prop<-read.csv(paste0("~/X/12.Tissues_substructures/", tissue, "_no_follicles_pivot.csv"))
-      substructures<- c("cortex", "corpora", "medulla", "vessels")
-      
-    }else if (tissue =="Vagina"){
-      cell_prop<-read.csv(paste0("~/X/12.Tissues_substructures/", tissue, "_pivot.csv"))
-      substructures<- c("epithelium", "lamina_propria", "vessels", "stroma")
-      
-    }else if (tissue =="Uterus"){
-      cell_prop<-read.csv(paste0("../00.Data/", tissue, "_pivot.csv"))
-      substructures<- c("myometrium", "endometrium", "vessels")
-      
-    }else if (tissue =="CervixEndocervix"){
-      cell_prop<-read.csv(paste0("~/X/12.Tissues_substructures/Endocervix_pivot.csv"))
-      substructures<- c("vessels", "glandular_epithelium", "stroma")
-      
-    }else if (tissue =="CervixEctocervix"){
-      cell_prop<-read.csv(paste0("~/X/12.Tissues_substructures/Ectocervix_pivot.csv"))
-      substructures<- c("epithelium", "stroma", "vessels", "glands")
-      
-    }else if (tissue == "FallopianTube"){
-      cell_prop<-read.csv(paste0("~/X/12.Tissues_substructures/FallopianTube_pivot.csv"))
-      substructures<- c("vessels", "lumen", "smooth_muscle", "epithelium", "stroma") ##always control for adipose, since it is contamination
-      
-    }
-    
-    cell_prop$Donor<-  gsub("^(\\w+-\\w+).*", "\\1", cell_prop$slide_id)
-    metadata<- merge(metadata, cell_prop, by="Donor")
     
     counts <- counts_tot[, metadata$Sample]
     tpm<-tpm_tot[, metadata$Sample]
