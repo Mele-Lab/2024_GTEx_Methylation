@@ -10,13 +10,13 @@ parser <- OptionParser()
 parser <- add_option(parser, opt_str=c("-t", "--tissue"), type="character",
                      dest="tissue",
                      help="Tissue")
-pareser <- add_option(parser, opt_str=c("-a", "--ancestry"), type="character",
+parser <- add_option(parser, opt_str=c("-a", "--ancestry"), type="character",
                       dest="ancestry",
                       help="Ancestry continous / categorical")
-pareser <- add_option(parser, opt_str=c("-r", "--remove_admixed"), type="logical",
+parser <- add_option(parser, opt_str=c("-r", "--remove_admixed"), type="logical",
                       dest="remove_admixed",
                       help="Remove")
-pareser <- add_option(parser, opt_str=c("-s", "--smoking_status"), type="logical",
+parser <- add_option(parser, opt_str=c("-s", "--smoking_status"), type="logical",
                       dest="smoking_status",
                       help="smoking information")
 options=parse_args(parser)
@@ -131,7 +131,7 @@ model_function <- function(mod){
 
 res_2 <- model_function(mod_2) #I would use 5 PEERs
 
-saveRDS(res_2, paste0(project_path, "/Tissues/", tissue, "/DML_results_5_PEERs_Ancestry_",ancestry, "_remove_admixed_", remove_admixed,"_smoking_", smoking, ".peer.rds")) #This is the final model we are using
+saveRDS(res_2, paste0(project_path, "/Tissues/", tissue, "/DML_results_5_PEERs_Ancestry_",ancestry, "_remove_admixed_", remove_admixed,"_smoking_", smoking,".peer.rds")) #This is the final model we are using
 print(paste0("Using 5 PEERs, ",ancestry, " ancestry and remove admixed individuals ", remove_admixed, ":"))
 print(paste0("  EURv1: ", sum(res_2$EURv1$adj.P.Val<0.05)))
 print(paste0("  Age: ", sum(res_2$AGE$adj.P.Val<0.05)))
