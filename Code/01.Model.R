@@ -110,6 +110,10 @@ M <- log2(beta/(1-beta)) #-> most papers say M is better for differential althou
 
 mod_2 <- model.matrix( as.formula(paste0("~", paste0(colnames(metadata_2), collapse="+"))), data =  metadata_2)
 
+if (ancestry=="categorical"){
+  colnames(mod_2) <- gsub("EURv1EUR", "EURv1",colnames(mod_2))
+}
+
 model_function <- function(mod){
   print("Modelling")
   Sys.time()
