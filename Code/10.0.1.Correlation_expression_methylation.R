@@ -82,7 +82,7 @@ gene_annotation$symbol[gene_annotation$gene=="ENSG00000228741.2"] <- "GC13P02455
 print("Running")
 print(tissue)
 Sys.time()
-results_DML <- readRDS(paste0("Tissues/", tissue, "/DML_results_5_PEERs_continous.rds"))
+results_DML <- readRDS(paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Tissues/", tissue, "/DML_results_5_PEERs_continous.rds"))
 
 ### read DEG ####
 tissues <- c("BreastMammaryTissue", "ColonTransverse" ,"KidneyCortex", "Lung", "MuscleSkeletal" ,"Ovary", "Prostate", "Testis", "WholeBlood")
