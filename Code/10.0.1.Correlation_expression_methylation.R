@@ -111,11 +111,11 @@ for (trait in individual_variables) {
   signif <- res[res$P.Value<0.05,]
   # table(signif$logFC>0)
   #Reading methylationresiduals
-  beta <- readRDS(paste0("Tissues/", tissue, '/',trait,"_methylation_residuals.continous.rds"))
+  beta <- readRDS(paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Tissues/", tissue, '/',trait,"_methylation_residuals.continous.rds"))
   Sys.time() 
   
   #Reading expression residuals in the lung:
-  expression <- readRDS(paste0("Tissues/", tissue, '/',traits_expr[trait],"_expression_residuals.continous.rds"))
+  expression <- readRDS(paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Tissues//", tissue, '/',traits_expr[trait],"_expression_residuals.continous.rds"))
   
   rownames(expression) <- sapply(rownames(expression), function(gene) gene_annotation$symbol[gene_annotation$gene==gene])
   #From sample id to donor id
@@ -244,7 +244,7 @@ for (trait in individual_variables) {
   output <- rbind(output_promoters, output_enhancers, output_gene_body)
   # saveRDS(output, paste0("tissues/Lung/Correlations.rds"))
   
-  saveRDS(output, paste0("Tissues/", tissue, '/',trait,"_Correlations_probes_genes_DEG_DMP.pnominal_ancestry_c.rds"))
+  saveRDS(output, paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Tissues/", tissue, '/',trait,"_Correlations_probes_genes_DEG_DMP.pnominal_ancestry_c.rds"))
 
 }
 #---------------------------------------------------
