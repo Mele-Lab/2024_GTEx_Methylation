@@ -27,8 +27,12 @@ parser <- OptionParser()
 parser <- add_option(parser, opt_str=c("-t", "--tissue"), type="character",
                      dest="tissue",
                      help="Tissue")
+parser <- add_option(parser, opt_str=c("-p", "--pvalue"), type="character",
+                     dest="pvalue",
+                     help="pvalue")
 options=parse_args(parser)
 tissue=options$tissue
+pvalue=options$pvalue
 # tissue <- "Lung"
 
 print(tissue)
@@ -67,8 +71,8 @@ Sys.time()
 # write.table(gene_prom_enh_cpgs, '~/marenostrum/Projects/GTEx_v8/Methylation/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt', sep = '\t',
 #             col.names = T, row.names = F, quote = F)
 
-#From ensembl id to gene symbol
-gene_annotation  <- read.delim("/gpfs/projects/bsc83/Projects/GTEx_v8/Laura/00.Data/gencode.v26.GRCh38.genes.biotype_matched_v38.bed")[,c(6,7)]
+#From ensembl id to gene sym
+gene_annotation  <- read.delim("/gpfs/projects/bsc83/Projects/GTEx_v8/Laura/00.Data/gencode.v26.GRCh38.genes.biotype_matched_v38.bed")
 colnames(gene_annotation) <- c("gene", "symbol")
 
 #These were genes duplicated, I changed their names to their correct one
@@ -108,7 +112,11 @@ names(traits_expr) <- traits_meth
 for (trait in individual_variables) {
   res <- results_DML[[trait]]
   
-  signif <- res[res$P.Value<0.05,]
+  if(pvalue=="pnominal"){
+    signif <- res[res$P.Value<0.05,]
+  }else{
+    signif <- res[res$adj.P.Val<0.05,]
+  }
   # table(signif$logFC>0)
   #Reading methylationresiduals
   beta <- readRDS(paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Tissues/", tissue, '/',trait,"_methylation_residuals.continous.rds"))
@@ -117,7 +125,7 @@ for (trait in individual_variables) {
   #Reading expression residuals in the lung:
   expression <- readRDS(paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Tissues//", tissue, '/',traits_expr[trait],"_expression_residuals.continous.rds"))
   
-  rownames(expression) <- sapply(rownames(expression), function(gene) gene_annotation$symbol[gene_annotation$gene==gene])
+  rownames(expression) <- sapply(rownames(expression), function(gene) gene_annotation$gene.name.x[gene_annotation$ensembl.id==gene])
   #From sample id to donor id
   colnames(expression) <- sapply(colnames(expression), function(id) paste0(strsplit(id, "-")[[1]][-3], collapse="-"))
   #Subset expression data to match the donors in DNA methylation data
@@ -159,7 +167,7 @@ for (trait in individual_variables) {
   if (trait == 'BMI') {
     trait_deg <- 'BMI'
   }
-  deg <- GTEx_v8[[tissue]][[trait_deg]][GTEx_v8[[tissue]][[trait_deg]][['adj.P.Val']]<0.05,'gene_name']
+  deg <- unlist(GTEx_v8[[tissue]][[trait_deg]][GTEx_v8[[tissue]][[trait_deg]][['adj.P.Val']]<0.05,'gene.name.x'])
 
   annotation_promoter <- annotation_promoter[annotation_promoter$IlmnID %in% rownames(signif) & annotation_promoter$UCSC_RefGene_Name %in% deg,]
   annotation_enhancer <- annotation_enhancer[annotation_enhancer$IlmnID %in% rownames(signif) & annotation_enhancer$UCSC_RefGene_Name %in% deg,]
@@ -244,7 +252,7 @@ for (trait in individual_variables) {
   output <- rbind(output_promoters, output_enhancers, output_gene_body)
   # saveRDS(output, paste0("tissues/Lung/Correlations.rds"))
   
-  saveRDS(output, paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Tissues/", tissue, '/',trait,"_Correlations_probes_genes_DEG_DMP.pnominal_ancestry_c.rds"))
+  saveRDS(output, paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Tissues/", tissue, '/',trait,"_Correlations_probes_genes_DEG_DMP.",pvalue,"_ancestry_c.rds"))
 
 }
 #---------------------------------------------------

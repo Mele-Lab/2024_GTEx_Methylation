@@ -138,7 +138,7 @@ get_corr <- function(tissue, trait){
   if(tissue %in% sex_tissues & trait == "SEX2"){
     NA
   }else{
-    model <- readRDS(paste0(project_path, "Tissues/",tissue, "/",trait,'_Correlations_probes_genes_DEG_DMP.rds'))
+    model <- readRDS(paste0(project_path, "Tissues/",tissue, "/",trait,'_Correlations_probes_genes_DEG_DMP.pnominal_ancestry_c.rds'))
     model[model$p.adj<0.05,]
   }
 }
@@ -150,7 +150,7 @@ get_pairs <- function(tissue, trait){
   if(tissue %in% sex_tissues & trait == "SEX2"){
     NA
   }else{
-    model <- readRDS(paste0(project_path, "Tissues/",tissue, "/",trait,'_Correlations_probes_genes_DEG_DMP.rds'))
+    model <- readRDS(paste0(project_path, "Tissues/",tissue, "/",trait,'_Correlations_probes_genes_DEG_DMP.pnominal_ancestry_c.rds'))
     model[!is.na(model$gene),]
   }
 }
@@ -162,7 +162,7 @@ for(trait in c("Ancestry", "Sex", "Age", "BMI")){names(DMPs_DEGs[[trait]]) <- ti
 metadata <- lapply(tissues, function(tissue) {
   metadata_ind <- readRDS(paste0(project_path, "Tissues/",tissue, "/metadata.rds"))
   print("Reading Admixture results")
-  admixture_ancestry <- read.table('~/marenostrum_scratch/bsc83535/GTEx/v8/genotype_data/admixture_inferred_ancestry.txt')
+  admixture_ancestry <- read.table(paste0(project_path,'/admixture_inferred_ancestry.txt'))
   colnames(admixture_ancestry) <- c('SUBJID','AFRv1','EURv1','inferred_ancestry','AFRv2','EURv2')
   metadata_ind <- merge(metadata_ind, admixture_ancestry[,c("SUBJID","EURv1")], by='SUBJID')
   metadata_ind

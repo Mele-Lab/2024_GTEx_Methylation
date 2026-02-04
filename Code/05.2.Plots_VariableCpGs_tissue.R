@@ -21,8 +21,8 @@ read_data_fisher <- function(variables, data, tissue, n){ #Function to prepare d
   adj.P.Val <- p.adjust(sapply(variables, function(type) data[[type]][['f']]$p.value), method = "BH")
   CI_down <- lapply(variables, function(type) data[[type]][['f']]$conf.int[1])
   CI_up <- lapply(variables, function(type) data[[type]][['f']]$conf.int[2])
-  #sample_size <- lapply(variables, function(type) data[[type]][['m']])
-  sample_size <- n
+  sample_size <- lapply(variables, function(type) data[[type]][['m']])
+  #sample_size <- n
   
   names(odds_ratio) <- variables
   names(adj.P.Val) <- variables
