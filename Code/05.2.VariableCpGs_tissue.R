@@ -82,6 +82,9 @@ saveRDS(high_var_cpgs, paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation
 
 # get the enrichments in Enhancers and Promoters 
 
+
+
+
 my_fisher <- function(type, tissue, variable_cpgs, universe){
   
   chrom_tissue <- chromhmm_cpgs[[tissue]]
@@ -93,13 +96,26 @@ my_fisher <- function(type, tissue, variable_cpgs, universe){
   chrom_tissue$region_chromhmm_new[chrom_tissue$region_chromhmm %in% c("ReprPCWk","ReprPC")] <- "ReprPC"
   chrom_tissue$region_chromhmm_new[chrom_tissue$region_chromhmm %in% c("TxWk","Tx")] <- "Tx"
   
-  variable_type <- nrow(chrom_tissue[chrom_tissue$name_ann %in%  variable_cpgs & chrom_tissue$region_chromhmm_new == type,])
-  variable_notype <-  length(variable_cpgs) - variable_type
-  all_type <- nrow(chrom_tissue[chrom_tissue$name_ann %in%  universe & chrom_tissue$region_chromhmm_new == type,])
-  all_notype <- length(universe) - all_type
-
+  # Universe must be CpGs that have a chromHMM assignment in this tissue
+  anno_universe <- intersect(universe, unique(chrom_tissue$name_ann))
+  var_set <- intersect(variable_cpgs, anno_universe)
+  
+  # CpGs in the given state
+  in_type <- intersect(anno_universe, chrom_tissue$name_ann[chrom_tissue$region9 == type])
+ 
+  # CpGs in the given state
+  in_type <- intersect(anno_universe, chrom_tissue$name_ann[chrom_tissue$region9 == type])
+  
+  # 2x2 counts
+  a <- sum(var_set %in% in_type)                 # variable & in_type
+  b <- length(in_type) - a                       # not variable & in_type
+  c <- length(var_set) - a                       # variable & not in_type
+  d <- (length(anno_universe) - length(in_type)) - c   # not variable & not in_type
+  
   ### test significance
-  m <- matrix(c(variable_type, variable_notype, all_type, all_notype), 2,2, byrow = T)
+  m <- matrix(c(a,b,c,d), nrow=2, byrow=TRUE)
+  rownames(m) <- c("InState", "NotInState")
+  colnames(m) <- c("Variable", "NotVariable")
   print(m)
   
   m[is.na(m)] <- 0

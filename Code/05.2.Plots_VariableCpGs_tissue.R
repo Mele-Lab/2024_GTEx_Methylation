@@ -12,3 +12,131 @@ tissues <- c("BreastMammaryTissue", "ColonTransverse" ,"KidneyCortex", "Lung", "
 
 fisher_results <- lapply(tissues, function(tissue) 
   readRDS(paste0(first_dir, "/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs_enrichment_chromHMM.rds")))
+
+
+#reuse Jose's scripts to plot enrichment of highly variable CpGs per tissue 
+read_data_fisher <- function(variables, data, tissue){ #Function to prepare data to plot and compute adjusted p value
+  
+  odds_ratio <- lapply(variables, function(type) data[[type]][['f']]$estimate)
+  adj.P.Val <- p.adjust(sapply(variables, function(type) data[[type]][['f']]$p.value), method = "BH")
+  CI_down <- lapply(variables, function(type) data[[type]][['f']]$conf.int[1])
+  CI_up <- lapply(variables, function(type) data[[type]][['f']]$conf.int[2])
+  sample_size <- lapply(variables, function(type) data[[type]][['m']])
+  
+  names(odds_ratio) <- variables
+  names(adj.P.Val) <- variables
+  names(CI_down) <- variables
+  names(CI_up) <- variables
+  names(sample_size) <- variables
+  
+  odds_ratio_df <- as.data.frame(unlist(odds_ratio))
+  odds_ratio_df$label <- variables
+  odds_ratio_df$type <- deparse(substitute(data)) #Either hypo or hyper
+  colnames(odds_ratio_df) <- c('oddsRatio', 'region','type')
+  
+  adj.P.Val_df <- as.data.frame(unlist(adj.P.Val))
+  adj.P.Val_df$label <- variables
+  adj.P.Val_df$type <- deparse(substitute(data))
+  colnames(adj.P.Val_df) <- c('adjPvalue','region','type')
+  
+  CI_down_df <- as.data.frame(unlist(CI_down))
+  CI_down_df$label <- variables
+  CI_down_df$type <- deparse(substitute(data))
+  colnames(CI_down_df) <- c('CI_down','region','type')
+  
+  CI_up_df <- as.data.frame(unlist(CI_up))
+  CI_up_df$label <- variables
+  CI_up_df$type <- deparse(substitute(data))
+  colnames(CI_up_df) <- c('CI_up','region','type')
+  
+  sample_size_df <- as.data.frame(unlist(sample_size))
+  sample_size_df$label <- variables
+  sample_size_df$type <- deparse(substitute(data))
+  colnames(sample_size_df) <- c('sample_size','region','type')
+  
+  all <- Reduce(function(x, y) merge(x, y, all=TRUE), list(odds_ratio_df, adj.P.Val_df, CI_down_df, CI_up_df, sample_size_df))
+  head(all)
+  all$sig <- 'not Sig'
+  all$sig[all$adjPvalue<0.05] <- 'Sig'
+  all <- all[,c("region","oddsRatio","adjPvalue","CI_down","CI_up","sig","type", "sample_size")]
+  all$tissue <- tissue
+  return(all)
+}
+
+
+fisher_results <- do.call(rbind.data.frame, lapply(tissues, function(tissue) {
+  x <- readRDS(paste0(first_dir, "/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs_enrichment_chromHMM.rds"))
+  fish_table <- read_data_fisher(c("Enh","EnhBiv","Het","Quies","ReprPC","TSS","TssBiv","Tx","ZNF/Rpts"), x, tissue)
+  return(fish_table)
+}))
+
+
+colors_traits <- list('AGE'=c('#3D7CD0','#B4D6F6'),
+                      'SEX2'=c('#3B734E','#89AA94'),
+                      'EURv1'=c('#F0AE21','#F9DE8B'))
+
+fisher_results$sig[fisher_results$sig =="Sig"] <- "FDR < 0.05"
+fisher_results$sig[fisher_results$sig =="not Sig"] <- "FDR >= 0.05"
+hyper_hypo$sig <- factor(hyper_hypo$sig, levels=c("FDR >= 0.05", "FDR < 0.05"))
+hyper_hypo$region <- factor(hyper_hypo$region, levels=rev(c("Enh","EnhBiv","Het","Quies","ReprPC","TSS","TssBiv","Tx","ZNF/Rpts")))
+hyper_hypo$type[hyper_hypo$type =="hypo"] <- "Hypomethylation"
+hyper_hypo$type[hyper_hypo$type =="hyper"] <- "Hypermethylation"
+
+
+
+sex_tissues <- c('Ovary','Prostate','Testis')
+#for (tissue in names(hypo)) {
+for (tissue in c('ColonTransverse')) {
+  #for (trait in names(hypo$Lung)) {
+  for (trait in c('AGE')) {
+    if (tissue %in% sex_tissues & trait == "SEX2") {
+      print(NA)
+    } else {
+      hypo_d <- read_data(c("Enh","EnhBiv","Het","Quies","ReprPC","TSS","TssBiv","Tx","ZNF/Rpts"), hypo, tissue, trait)
+      hyper_d <- read_data(c("Enh","EnhBiv","Het","Quies","ReprPC","TSS","TssBiv","Tx","ZNF/Rpts"), hyper, tissue, trait)
+      hyper_hypo <- rbind(hypo_d, hyper_d)
+      hyper_hypo$sig[hyper_hypo$sig =="Sig"] <- "FDR < 0.05"
+      hyper_hypo$sig[hyper_hypo$sig =="not Sig"] <- "FDR >= 0.05"
+      hyper_hypo$sig <- factor(hyper_hypo$sig, levels=c("FDR >= 0.05", "FDR < 0.05"))
+      hyper_hypo$region <- factor(hyper_hypo$region, levels=rev(c("Enh","EnhBiv","Het","Quies","ReprPC","TSS","TssBiv","Tx","ZNF/Rpts")))
+      hyper_hypo$type[hyper_hypo$type =="hypo"] <- "Hypomethylation"
+      hyper_hypo$type[hyper_hypo$type =="hyper"] <- "Hypermethylation"
+      g <- ggplot(hyper_hypo, aes(x=log2(oddsRatio), y=region, colour=type, alpha=sig)) +
+        geom_errorbar(aes(xmin=log2(CI_down), xmax=log2(CI_up)), width=.3) +
+        geom_vline(xintercept = 0) +
+        #xlim(0,20) + #Only for Lung to show the 0
+        geom_point(size=3) + ylab('') + theme_bw() +
+        scale_colour_manual(values=colors_traits[[trait]]) +
+        xlab("log2(Odds ratio)") +
+        scale_alpha_discrete(range = c(0.4, 1), drop = FALSE) +
+        theme(legend.title = element_blank(),
+              axis.text.x = element_text(colour="black", size=13),
+              axis.text.y = element_text(colour="black", size=14),
+              legend.text = element_text(colour="black", size=13),
+              axis.title.x = element_text(size=16),
+              legend.spacing.y = unit(-0.05, "cm"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(colour = "black", linewidth=1)) +
+        scale_y_discrete(breaks=c("Enh","EnhBiv","Het","Quies","ReprPC","TSS","TssBiv","Tx","ZNF/Rpts"),
+                         labels=c("Enhancer","Enhancer Bivalent","Heterochromatin","Quiescent","Repressed Polycomb","TSS","TSS Bivalent","Transcription","ZNF & Repeats"))# + xlim(0, 3)
+      
+      #Plot sample sizes:
+      
+      g2 <- ggplot(hyper_hypo) + geom_col(aes(sample_size, region, fill=type), width = 0.6) +
+        theme_classic() + xlab("Number of DMPs") + ylab("") +
+        scale_fill_manual(values=colors_traits[[trait]]) +
+        theme(legend.position = "none",
+              axis.text.x = element_text(colour="black", size=13),
+              axis.text.y=element_blank(),  #remove y axis labels,
+              axis.title.x = element_text(size=16)) +
+        scale_x_continuous(n.breaks=3)
+      
+      p <- ggarrange(g, g2, labels = c("A", "B"),
+                     common.legend = TRUE, legend = "right", widths = c(0.8,0.3))
+      pdf(file = paste0("~/marenostrum/Projects/GTEx_v8/Methylation/Plots/chromhmm/enrichment_", tissue,'_',trait,".v2.filt.pdf"), w = 8, h = 4)
+      print(p)
+      dev.off()
+    }
+  }
+}
