@@ -27,8 +27,9 @@ tissue_info$name <- gsub("- ", "", tissue_info$tissue_name)
 
 n_samples <- c()
 for(tissue in tissues){ 
-  print(tissue)
-  model <- readRDS(paste0(project_path, "Tissues/",tissue, "/DML_results_5_PEERs_continous.rds"))
+  print(tissue)#
+  #model <- readRDS(paste0(project_path, "Tissues/",tissue, "/DML_results_5_PEERs_continous.rds"))
+  model <- readRDS(paste0(project_path, "/Tissues/", tissue, "/DML_results_5_PEERs_Ancestry_continous_remove_admixed_FALSE_smoking_TRUE.peer.rds")) 
   data[tissue, "Age"] <- sum(model$AGE$adj.P.Val<0.05)
   if(TRUE %in% grepl("EURv1",names(model))){
     data[tissue, "Ancestry"] <- sum(model$EURv1$adj.P.Val<0.05)
@@ -94,7 +95,7 @@ create_heatmap <- function(data, tissue_info, size=12){ #It takes as input the w
   )
 }
 rownames(data) <- tissue_info$name[match(rownames(data), tissue_info$tissue_ID)]
-pdf(paste0("~/marenostrum/Projects/GTEx_v8/Methylation/Plots/Heatmap.pdf"), height = 4.5, width = 6.5)
+pdf(paste0(first_dir,"Projects/GTEx_v8/Methylation/Plots/Heatmap_ancestry_continous_remove_admixed.pdf"), height = 4.5, width = 6.5)
 create_heatmap(data, tissue_info, size=12)
 dev.off()
 

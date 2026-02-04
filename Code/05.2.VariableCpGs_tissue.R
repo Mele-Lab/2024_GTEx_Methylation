@@ -125,7 +125,7 @@ my_fisher <- function(type, tissue, variable_cpgs, universe){
   print(m)
   f <- fisher.test(m)
   print(f)
-  return(list("f" = f, "m" = variable_type))
+  return(list("f" = f, "m" = type))
   
 }
 
