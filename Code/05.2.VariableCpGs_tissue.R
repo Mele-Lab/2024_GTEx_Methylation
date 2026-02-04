@@ -101,10 +101,10 @@ my_fisher <- function(type, tissue, variable_cpgs, universe){
   var_set <- intersect(variable_cpgs, anno_universe)
   
   # CpGs in the given state
-  in_type <- intersect(anno_universe, chrom_tissue$name_ann[chrom_tissue$region9 == type])
+  in_type <- intersect(anno_universe, chrom_tissue$name_ann[chrom_tissue$region_chromhmm_new == type])
  
   # CpGs in the given state
-  in_type <- intersect(anno_universe, chrom_tissue$name_ann[chrom_tissue$region9 == type])
+  in_type <- intersect(anno_universe, chrom_tissue$name_ann[chrom_tissue$region_chromhmm_new == type])
   
   # 2x2 counts
   a <- sum(var_set %in% in_type)                 # variable & in_type
