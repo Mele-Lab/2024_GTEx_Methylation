@@ -68,7 +68,7 @@ Sys.time()
 #             col.names = T, row.names = F, quote = F)
 
 #From ensembl id to gene symbol
-gene_annotation <- read.delim("/gpfs/projects/bsc83/MN4/bsc83/Projects/GTEx_v8/Jose/04_Smoking/github/analysis/data/public/gencode.v26.GRCh38.genes.bed", header=F)[,c(6,7)]
+gene_annotation  <- read.delim("/gpfs/projects/bsc83/Projects/GTEx_v8/Laura/00.Data/gencode.v26.GRCh38.genes.biotype_matched_v38.bed")[,c(6,7)]
 colnames(gene_annotation) <- c("gene", "symbol")
 
 #These were genes duplicated, I changed their names to their correct one
@@ -244,7 +244,7 @@ for (trait in individual_variables) {
   output <- rbind(output_promoters, output_enhancers, output_gene_body)
   # saveRDS(output, paste0("tissues/Lung/Correlations.rds"))
   
-  saveRDS(output, paste0("Tissues/", tissue, '/',trait,"_Correlations_probes_genes_DEG_DMP.pnominal_ancestry_continous.rds"))
+  saveRDS(output, paste0("Tissues/", tissue, '/',trait,"_Correlations_probes_genes_DEG_DMP.pnominal_ancestry_c.rds"))
 
 }
 #---------------------------------------------------
