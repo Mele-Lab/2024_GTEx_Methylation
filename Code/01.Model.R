@@ -63,7 +63,7 @@ if(remove_admixed==T){
 #we can model ancestry as continous or categorical 
 if(ancestry=="continous"){
  colnames(metadata) <- gsub("Ancestry_continous", "EURv1", colnames(metadata))
-}else{
+}else if (ancestry=="categorical"){
   colnames(metadata) <- gsub("Ancestry", "EURv1",colnames(metadata))
 }
 
