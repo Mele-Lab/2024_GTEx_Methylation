@@ -121,11 +121,12 @@ plot_fisher_by_type <- function(type){
     pdf(file = paste0("/users/mariasopenar/cluster/Projects/GTEx_v8/Methylation/Plots/chromhmm/enrichment_HighVar_CpG_",trait,".pdf"), w = 8, h = 4)
     print(p)
     dev.off()
+    return(p)
 }
 
 
-
-
+plot_fisher_by_type("Enh")
+plot_fisher_by_type("TSS")
 
 
 
