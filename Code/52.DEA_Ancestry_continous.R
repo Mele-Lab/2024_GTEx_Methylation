@@ -88,6 +88,7 @@ Y_genes <- gene_annotation[gene_annotation$chr=="chrY",]$ensembl.id
 
 # Tissue ----
 tissues <- c("BreastMammaryTissue", "ColonTransverse" ,"KidneyCortex", "Lung", "MuscleSkeletal" ,"Ovary", "Prostate", "Testis", "WholeBlood")
+tissues <- c("Testis", "WholeBlood")
 
 
 for (tissue in tissues){

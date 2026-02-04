@@ -1,11 +1,14 @@
 
-# Can we identify highly variable CpG within a tissue? 
+#!/usr/bin/env Rscript
+# @Author: Maria Sopena Rios
+# @E-mail: maria.sopena@bsc.es
+# @Description: Identification of highly variable CpGs across individuals within a tissue 
+# @software version: R=4.2.2
 
 library(variancePartition)
 library(BiocParallel)
 library(dplyr)
 first_dir <- "/gpfs/projects/bsc83/"
-
 
 
 # Parsing
