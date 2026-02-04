@@ -1,4 +1,10 @@
-#DEA SUBSTRUCTURES
+
+#!/usr/bin/env Rscript
+# @Author: Maria Sopena Rios
+# @E-mail: maria.sopena@bsc.es
+# @Description: Run Differential expression analysis with GTEx samples 
+# @software version: R=4.2.2
+
 
 Sys.setenv(TZ="Europe/Madrid")
 # ---------------------- #
@@ -14,9 +20,70 @@ suppressMessages(library(car))
 args <- commandArgs(trailingOnly=TRUE)
 
 # Functions ####
-source("./DEA_and_DSA.R_functions.R")
+#source("./DEA_and_DSA.R_functions.R")
+limma_lm <- function(fit, covariate, covariate_data, interaction = NULL) {
+  v.contrast <- rep(0, ncol(fit$design))
+  
+  if (!is.null(interaction)) {
+    # If testing for interaction, extract the interaction term
+    interaction_term <- interaction
+    interaction_idx <- grep(interaction_term, colnames(fit$design))
+    if (length(interaction_idx) > 0) {
+      v.contrast[interaction_idx] <- 1
+      contrast.matrix <- cbind("C1" = v.contrast)
+    } else {
+      stop("Interaction term not found in the design matrix.")
+    }
+  } else {
+    # Original covariate testing
+    if (is.factor(covariate_data[, covariate])) {
+      if (covariate == "Sex") {
+        if (table(covariate_data$Sex)["1"] >= 10 & table(covariate_data$Sex)["2"] >= 10) {
+          v.contrast[which(colnames(fit$design) == "Sex2")] <- 1
+          contrast.matrix <- cbind("C1" = v.contrast)
+        } else {
+          return(NA)
+        }
+      }else if (covariate == "Age_bin") {
+        if (table(covariate_data$Age_bin)["1"] >= 5 & table(covariate_data$Age_bin)["0"] >= 5) {
+          v.contrast[which(colnames(fit$design) == "Age_bin1")] <- 1
+          contrast.matrix <- cbind("C1" = v.contrast)
+        } else {
+          return(NA)
+        }
+        
+      }else if (covariate == "Ancestry") {
+        if (table(covariate_data$Ancestry)["AFR"] >= 10 & table(covariate_data$Ancestry)["EUR"] >= 10) {
+          v.contrast[which(colnames(fit$design) == "AncestryAFR")] <- 1
+          contrast.matrix <- cbind("C1" = v.contrast)
+        } else {
+          return(NA)
+        }
+      }else if (covariate == "Adenomyosis") {
+        if (table(covariate_data$Adenomyosis)["1"] >= 5 & table(covariate_data$Adenomyosis)["0"] >= 5) {
+          v.contrast[which(colnames(fit$design) == "Adenomyosis1")] <- 1
+          contrast.matrix <- cbind("C1" = v.contrast)
+        } else {
+          return(NA)
+        }
+      }else {
+        return(NULL)
+      }
+    } else {
+      # Continuous variable
+      v.contrast[which(colnames(fit$design) == covariate)] <- 1
+      contrast.matrix <- cbind("C1" = v.contrast)
+    }
+  }
+  
+  fitContrasts <- contrasts.fit(fit, contrast.matrix)
+  eb <- eBayes(fitContrasts)
+  tt.smart.sv <- topTable(eb, adjust.method = "BH", number = Inf)
+  return(tt.smart.sv)
+}
 
-gene_annotation  <- read.csv("../00.Data/gencode.v39.annotation.bed")
+
+gene_annotation  <- read.delim("/gpfs/projects/bsc83/Projects/GTEx_v8/Laura/00.Data/gencode.v26.GRCh38.genes.biotype_matched_v38.bed")
 Y_genes <- gene_annotation[gene_annotation$chr=="chrY",]$ensembl.id
 
 # Tissue ----
@@ -30,17 +97,15 @@ for (tissue in tissues){
   
   # 1.1 Read in data ----
   #FOR GTEx v8
+  print("Reading input data")
   counts <- readRDS(paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Laura/00.Data/v8/1.Final_tissues_to_use/", tissue,"/counts.rds"))
   tpm <- readRDS(paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Laura/00.Data/v8/1.Final_tissues_to_use/", tissue,"/tpm.rds"))
   metadata <-  readRDS(paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Laura/00.Data/v8/1.Final_tissues_to_use/", tissue,"/metadata.rds"))
   admixture_ancestry <- read.table('/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/admixture_inferred_ancestry.txt')
   colnames(admixture_ancestry) <- c('Donor','AFRv1','Ancestry_continous','inferred_ancestry','AFRv2','EURv2')
   metadata <- merge(metadata, admixture_ancestry[,c("Donor","Ancestry_continous")], by='Donor')
-  counts <- counts_tot[, metadata$Sample]
-  tpm<-tpm_tot[, metadata$Sample]
-  gene_annotation  <- read.delim("/gpfs/projects/bsc83/Projects/GTEx_v8/Laura/00.Data/gencode.v26.GRCh38.genes.biotype_matched_v38.bed")
-  Y_genes <- gene_annotation[gene_annotation$chr=="chrY",]$ensembl.id
-  
+  counts <- counts[, metadata$Sample]
+  tpm<-tpm[, metadata$Sample]
   
   
   # 1.2 Genes expressed per tissue ----
@@ -82,7 +147,11 @@ for (tissue in tissues){
   resu<- list()
   summary_results <- list()
 
-  individual_traits <- c("Age","Ancestry_continous", "BMI", "Sex")
+  if(! tissue %in% c("Vagina","Uterus","Ovary","Prostate","Testis","BreastMammaryTissue_Female","BreastMammaryTissue_Male")){
+    individual_traits <- c("Age","Ancestry_continous", "Sex","BMI")
+  }else{
+    individual_traits <- c("Age","Ancestry_continous", "BMI")
+  }
   covariates <- c(peers, tec)
   
   fml_args_mod <- paste(c(covariates, individual_traits), collapse = " + ")
@@ -105,43 +174,11 @@ for (tissue in tissues){
   
   # 4.3 Limma test with interaction term ----
   dea_res <- list()
-  
-  if (test =="all_cov_inter"){
-    
-    trait_res <- lapply(c(individual_traits, substructures), function(phenotype) limma_lm(fit, phenotype, metadata))
-    names(trait_res) <- c(individual_traits, substructures)
-    dea_res <- c(dea_res, trait_res)
-    interaction_res <- limma_lm(fit, covariate = NULL, covariate_data = metadata, interaction = paste0(sub, ":Age"))
-    name_inter<-paste0("Interaction_Age_", sub)
-    dea_res[[name_inter]] <- interaction_res
-    new_traits<- c(individual_traits, substructures, name_inter)
-    
-    
-  }else if(test=="one_cov_inter"){
-    trait_res <- lapply(c(individual_traits, sub), function(phenotype) limma_lm(fit, phenotype, metadata))
-    names(trait_res) <- c(individual_traits, sub)
-    dea_res <- c(dea_res, trait_res)
-    interaction_res <- limma_lm(fit, covariate = NULL, covariate_data = metadata, interaction = paste0(sub, ":Age"))
-    name_inter<-paste0("Interaction_Age_", sub)
-    dea_res[[name_inter]] <- interaction_res
-    new_traits<- c(individual_traits, sub, name_inter)
-    
-  }else if(test =="all_cov_no_inter"){
-    trait_res <- lapply(c(individual_traits, substructures), function(phenotype) limma_lm(fit, phenotype, metadata))
-    names(trait_res) <- c(individual_traits, substructures)
-    dea_res <- c(dea_res, trait_res)
-    new_traits<- c(individual_traits, substructures)
-    
-    
-  }else if(test =="one_cov_no_inter"){
-    trait_res <- lapply(c(individual_traits, sub), function(phenotype) limma_lm(fit, phenotype, metadata))
-    names(trait_res) <- c(individual_traits, sub)
-    dea_res <- c(dea_res, trait_res)
-    new_traits<- c(individual_traits, sub)
-    
-  }
-  
-  
+  trait_res <- lapply(c(individual_traits), function(phenotype) limma_lm(fit, phenotype, metadata))
+  names(trait_res) <- c(individual_traits)
+  dea_res <- c(dea_res, trait_res)
+  new_traits<- c(individual_traits)
+
   # 5. Computing avrg TPM and exprs var ####
   print("# ---- Calculating avrg TPM and var ---- #")
   
@@ -165,17 +202,12 @@ for (tissue in tissues){
     }
   }
   
-  if (test =="all_cov_no_inter"){
-    saveRDS(dea_res,
-            paste0(outpath,tissue,"_", test, "_AGE_covariates_and_traits.results.rds"))
-    print(paste0("# ---- saved file: ",tissue,"_", test, "_AGE_covariates_and_traits.results.rds", " ---- #") )
-  }else{
-    saveRDS(dea_res,
-            paste0(outpath,tissue,"_", sub, "_", test, "_covariates_and_traits.results.rds"))
+saveRDS(dea_res,
+        paste0(outpath,tissue,"DEA_results_Ancestry_continous_.results.rds"))
     
-    print(paste0("# ---- saved file: ",tissue,"_", sub, "_",test, "_covariates_and_traits.results.rds", " ---- #") )
+    print(paste0("# ---- saved file: ",tissue,"DEA_results_Ancestry_continous_.results.rds", " ---- #") )
     
   }
 
 
-}
+
