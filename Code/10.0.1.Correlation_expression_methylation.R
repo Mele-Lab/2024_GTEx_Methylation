@@ -85,7 +85,11 @@ Sys.time()
 results_DML <- readRDS(paste0("Tissues/", tissue, "/DML_results_5_PEERs_continous.rds"))
 
 ### read DEG ####
-GTEx_v8 <- readRDS('/gpfs/projects/bsc83/MN4/bsc83/Projects/ribosomal_proteins/Winona/2022_Ribosomal_analysis/Data/Data_set_1.rds')
+tissues <- c("BreastMammaryTissue", "ColonTransverse" ,"KidneyCortex", "Lung", "MuscleSkeletal" ,"Ovary", "Prostate", "Testis", "WholeBlood")
+
+#GTEx_v8 <- readRDS('/gpfs/projects/bsc83/MN4/bsc83/Projects/ribosomal_proteins/Winona/2022_Ribosomal_analysis/Data/Data_set_1.rds')
+GTEx_v8 <- lapply(c(tissues), function(t) readRDS(paste0('/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Data/DEA/', t, "/", t, "DEA_results_Ancestry_continous_.results.rds")))
+names(GTEx_v8) <- tissues
 #head(GTEx_v8)
 
 sexual_tissues <- c("Prostate", "Testis", "Ovary")
@@ -240,7 +244,7 @@ for (trait in individual_variables) {
   output <- rbind(output_promoters, output_enhancers, output_gene_body)
   # saveRDS(output, paste0("tissues/Lung/Correlations.rds"))
   
-  saveRDS(output, paste0("Tissues/", tissue, '/',trait,"_Correlations_probes_genes_DEG_DMP.pnominal.rds"))
+  saveRDS(output, paste0("Tissues/", tissue, '/',trait,"_Correlations_probes_genes_DEG_DMP.pnominal_ancestry_continous.rds"))
 
 }
 #---------------------------------------------------
