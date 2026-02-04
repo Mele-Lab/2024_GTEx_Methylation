@@ -5,6 +5,7 @@
 # @Description: Plot enrichemnt of highly variable CpGs across individuals within a tissue 
 # @software version: R=4.2.2
 
+library(ggpubr)
 
 first_dir <- "/Users/mariasopenar/cluster/"
 
@@ -21,7 +22,7 @@ read_data_fisher <- function(variables, data, tissue, n){ #Function to prepare d
   adj.P.Val <- p.adjust(sapply(variables, function(type) data[[type]][['f']]$p.value), method = "BH")
   CI_down <- lapply(variables, function(type) data[[type]][['f']]$conf.int[1])
   CI_up <- lapply(variables, function(type) data[[type]][['f']]$conf.int[2])
-  sample_size <- lapply(variables, function(type) data[[type]][['m']])
+  sample_size <- lapply(variables, function(type) data[[type]][['m']][1,1])
   #sample_size <- n
   
   names(odds_ratio) <- variables
@@ -86,10 +87,10 @@ fisher_results$type[fisher_results$type =="hyper"] <- "Hypermethylation"
 
 plot_fisher_by_type <- function(type){
   g1 <- ggplot(fisher_results[fisher_results$region==type,], aes(x=log2(oddsRatio), y=tissue, alpha=sig)) +
-    geom_errorbar(aes(xmin=log2(CI_down), xmax=log2(CI_up)), width=.3) +
+    geom_errorbar(aes(xmin=log2(CI_down), xmax=log2(CI_up)), width=.3,  color="#1b9e78ff") +
     geom_vline(xintercept = 0) +
     #xlim(0,20) + #Only for Lung to show the 0
-    geom_point(size=3) + ylab('') + theme_bw() +
+    geom_point(size=3, color="#1b9e78ff") + ylab('') + theme_bw() +
     #scale_colour_manual(values=colors_traits[[trait]]) +
     xlab("log2(Odds ratio)") +
     scale_alpha_discrete(range = c(0.4, 1), drop = FALSE) +
@@ -102,26 +103,24 @@ plot_fisher_by_type <- function(type){
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
           panel.border = element_rect(colour = "black", linewidth=1)) +
-    ggtitle(paste0("Highly variable CpGs ( ", type," )"))
+    #ggtitle(paste0(type))+
     scale_y_discrete(breaks=tissues)# + xlim(0, 3)
   
     
-    g2 <- ggplot(fisher_results) + geom_col(aes(sample_size, tissue, fill=type), width = 0.6) +
-      theme_classic() + xlab("Number of DMPs") + ylab("") +
-      scale_fill_manual(values=colors_traits[[trait]]) +
+    g2 <- ggplot(fisher_results[fisher_results$region==type,]) + geom_col(aes(sample_size, tissue), width = 0.6, fill="#1b9e78ff") +
+      theme_classic() + xlab("Number of highly variable CpGs") + ylab("") +
+      #scale_fill_manual(values=colors_traits[[trait]]) +
       theme(legend.position = "none",
             axis.text.x = element_text(colour="black", size=13),
             axis.text.y=element_blank(),  #remove y axis labels,
             axis.title.x = element_text(size=16)) +
       scale_x_continuous(n.breaks=3)
     
-    p <- ggarrange(g, g2, labels = c("A", "B"),
+    p <- ggarrange(g1, g2, labels = c("A", "B"),
                    common.legend = TRUE, legend = "right", widths = c(0.8,0.3))
-    pdf(file = paste0("~/marenostrum/Projects/GTEx_v8/Methylation/Plots/chromhmm/enrichment", gsub('\\/','_',type),'_',trait,".v2.pdf"), w = 8, h = 4)
+    pdf(file = paste0("/users/mariasopenar/cluster/Projects/GTEx_v8/Methylation/Plots/chromhmm/enrichment_HighVar_CpG_",trait,".pdf"), w = 8, h = 4)
     print(p)
     dev.off()
-    
-    
 }
 
 
