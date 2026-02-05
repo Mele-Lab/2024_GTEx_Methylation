@@ -73,14 +73,14 @@ Sys.time()
 
 #From ensembl id to gene sym
 gene_annotation  <- read.delim("/gpfs/projects/bsc83/Projects/GTEx_v8/Laura/00.Data/gencode.v26.GRCh38.genes.biotype_matched_v38.bed")
-colnames(gene_annotation) <- c("gene", "symbol")
+#colnames(gene_annotation) <- c("gene", "symbol")
 
 #These were genes duplicated, I changed their names to their correct one
-gene_annotation$symbol[gene_annotation$gene=="ENSG00000253972.5"] <- "MAL2-AS1" #I found this a posteriori
-gene_annotation$symbol[gene_annotation$gene=="ENSG00000283992.1"] <- "SLURP2" #Insted of LYNX1
-gene_annotation$symbol[gene_annotation$gene=="ENSG00000235271.5"] <- "GC22P027299"
-gene_annotation$symbol[gene_annotation$gene=="ENSG00000229694.6"] <- "C9orf73"
-gene_annotation$symbol[gene_annotation$gene=="ENSG00000228741.2"] <- "GC13P024553" 
+gene_annotation$gene.name.x[gene_annotation$ensembl.id=="ENSG00000253972.5"] <- "MAL2-AS1" #I found this a posteriori
+gene_annotation$gene.name.x[gene_annotation$ensembl.id=="ENSG00000283992.1"] <- "SLURP2" #Insted of LYNX1
+gene_annotation$gene.name.x[gene_annotation$ensembl.id=="ENSG00000235271.5"] <- "GC22P027299"
+gene_annotation$gene.name.x[gene_annotation$ensembl.id=="ENSG00000229694.6"] <- "C9orf73"
+gene_annotation$gene.name.x[gene_annotation$ensembl.id=="ENSG00000228741.2"] <- "GC13P024553" 
 
 
 print("Running")

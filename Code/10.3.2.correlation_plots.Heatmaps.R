@@ -18,7 +18,8 @@ traits <- names(traits_cols)
 
 # Tissues ----
 ### read methylation results ####
-first_dir <- "~/marenostrum/"
+#first_dir <- "~/marenostrum/"
+first_dir <- "/home/mariasr/cluster/"
 project_path <- paste0(first_dir, "Projects/GTEx_v8/Methylation/")
 
 tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate", "BreastMammaryTissue", "MuscleSkeletal", "KidneyCortex", "Testis", "WholeBlood")
@@ -40,7 +41,7 @@ names(tissues_cols) <- tissue_info$tissue_abbrv
 metadata <- lapply(tissues, function(tissue) {
   metadata_ind <- readRDS(paste0(project_path, "Tissues/",tissue, "/metadata.rds"))
   print("Reading Admixture results")
-  admixture_ancestry <- read.table('~/marenostrum_scratch/MN4/bsc83/bsc83535/GTEx/v8/genotype_data/admixture_inferred_ancestry.txt')
+  admixture_ancestry <- read.table(paste0(first_dir,'/Projects/GTEx_v8/Methylation/admixture_inferred_ancestry.txt'))
   colnames(admixture_ancestry) <- c('SUBJID','AFRv1','EURv1','inferred_ancestry','AFRv2','EURv2')
   metadata_ind <- merge(metadata_ind, admixture_ancestry[,c("SUBJID","EURv1")], by='SUBJID')
   metadata_ind
