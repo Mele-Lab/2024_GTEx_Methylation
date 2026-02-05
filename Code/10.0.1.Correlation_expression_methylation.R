@@ -156,7 +156,7 @@ for (trait in individual_variables) {
   
   individual_variables <- c("EURv1", "SEX2", "AGE", "BMI")
   if (trait == 'EURv1') {
-    trait_deg <- 'Ancestry'
+    trait_deg <- 'Ancestry_continous'
   } 
   if (trait == 'SEX2') {
     trait_deg <- 'Sex'
