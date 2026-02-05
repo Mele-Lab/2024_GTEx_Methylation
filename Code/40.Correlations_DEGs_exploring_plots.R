@@ -40,7 +40,7 @@ names(tissues_cols) <- tissue_info$tissue_abbrv
 metadata <- lapply(tissues, function(tissue) {
   metadata_ind <- readRDS(paste0(project_path, "Tissues/",tissue, "/metadata.rds"))
   print("Reading Admixture results")
-  admixture_ancestry <- read.table('~/marenostrum_scratch/MN4/bsc83/bsc83535/GTEx/v8/genotype_data/admixture_inferred_ancestry.txt')
+  admixture_ancestry <- read.table(paste0(project_path,'/admixture_inferred_ancestry.txt'))
   colnames(admixture_ancestry) <- c('SUBJID','AFRv1','EURv1','inferred_ancestry','AFRv2','EURv2')
   metadata_ind <- merge(metadata_ind, admixture_ancestry[,c("SUBJID","EURv1")], by='SUBJID')
   metadata_ind
@@ -67,12 +67,12 @@ get_corr <- function(tissue, trait){
   if(tissue %in% sex_tissues & trait == "SEX2"){
     NA
   }else{
-    model <- readRDS(paste0(project_path, "Tissues/",tissue, "/",trait,'_Correlations_probes_genes_DEG_DMP.rds'))
+    model <- readRDS(paste0(project_path, "Tissues/",tissue, "/",trait,'_Correlations_probes_genes_DEG_DMP.padjusted_ancestry_c.rds'))
     #rownames(model[[trait]][model[[trait]]$adj.P.Val<0.05,])
     model
   }
 }
-DMPs_Res <- lapply(c('EURv1','SEX2','AGE','BMI'), function(trait) lapply(tissues, function(tissue) get_corr(tissue, trait)))
+DMPs_co <- lapply(c('EURv1','SEX2','AGE','BMI'), function(trait) lapply(tissues, function(tissue) get_corr(tissue, trait)))
 names(DMPs_Res) <- c("Ancestry", "Sex", "Age", "BMI")
 for(trait in c("Ancestry", "Sex", "Age", "BMI")){names(DMPs_Res[[trait]]) <- tissues}
 
@@ -102,10 +102,10 @@ DMPs_DEGs <- lapply(c('EURv1','SEX2','AGE','BMI'), function(trait) lapply(tissue
 names(DMPs_DEGs) <- c("Ancestry", "Sex", "Age", "BMI")
 for(trait in c("Ancestry", "Sex", "Age", "BMI")){names(DMPs_DEGs[[trait]]) <- tissues}
 
-DEA_GTEx <- readRDS('~/marenostrum/Projects/GTEx_v8/Methylation/Data/DEA_GTEx.rds')
-
+DEA_GTEx <- lapply(c(tissues), function(t) readRDS(paste0(project_path,'/Data/DEA/', t, "/", t, "DEA_results_Ancestry_continous_.results.rds")))
+names(DEA_GTEx) <- tissues
 ## number of DEGs
-meth_genes <- read.delim('~/marenostrum/Projects/GTEx_v8/Methylation/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt')
+meth_genes <- read.delim(paste0(project_path,'/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt'))
 get_pairs <- function(tissue, trait){
   if(tissue %in% sex_tissues & trait == "Sex"){
     NA
@@ -119,7 +119,7 @@ names(genes_DE_with_probe) <- c("Ancestry", "Sex", "Age", "BMI")
 for(trait in c("Ancestry", "Sex", "Age", "BMI")){names(genes_DE_with_probe[[trait]]) <- tissues}
 
 results_DML <- lapply(tissues, function(tis) 
-  readRDS(paste0("~/marenostrum/Projects/GTEx_v8/Methylation/Tissues/",tis,"/DML_results_5_PEERs_continous.rds")))
+  readRDS(paste0(paste0(project_path,"/Tissues/",tis,"/DML_results_5_PEERs_continous.rds"))))
 names(results_DML) <- tissues
 
 get_dmps_gene <- function(tissue, trait){
@@ -151,7 +151,7 @@ counts <- sapply(c("Ancestry", "Sex", "Age", "BMI"), function(trait)
 
 counts <- sapply(c("Ancestry", "Sex", "Age", "BMI"), function(trait)
   sapply(tissues, function(tissue) 
-    nrow(DMPs_cor[[trait]][[tissue]])
+    nrow(DMPs_Res[[trait]][[tissue]])
   ))
 
 counts <- sapply(c("Ancestry", "Sex", "Age", "BMI"), function(trait)

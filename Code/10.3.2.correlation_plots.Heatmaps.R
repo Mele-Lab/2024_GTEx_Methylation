@@ -188,6 +188,10 @@ counts <- sapply(c("Ancestry", "Sex", "Age", "BMI"), function(trait)
   ))
 
 
+
+
+
+
 # Row annotation --
 names(n_samples) <- tissue_info$tissue_abbrv
 row_ha_left <- HeatmapAnnotation("Samples" = anno_barplot(n_samples,
@@ -289,3 +293,77 @@ pdf("marenostrum/Projects/GTEx_v8/Methylation/Plots/Perc_corr_DMPs_DEGs_heatmap.
 draw(ht)
     # heatmap_legend_side = "bottom")
 dev.off()
+
+
+### heatmap number correlated ####
+DEA_GTEx <- lapply(c(tissues), function(t) readRDS(paste0(project_path,'/Data/DEA/', t, "/", t, "DEA_results_Ancestry_continous_.results.rds")))
+names(DEA_GTEx) <- tissues
+DEA_GTEx$Lung$Ancestry_continous
+## number of DEGs
+meth_genes <- read.delim(paste0(project_path,'/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt'))
+get_pairs <- function(tissue, trait){
+  if(tissue %in% sex_tissues & trait == "Sex"){
+    NA
+  }else{
+    if(trait=="Ancestry"){
+      trait_deg <- "Ancestry_continous"
+    }else{
+      trait_deg <- trait
+    }
+    length(DEA_GTEx[[tissue]][[trait_deg]]$gene.name.x[DEA_GTEx[[tissue]][[trait_deg]]$gene.name.x %in% meth_genes$UCSC_RefGene_Name & DEA_GTEx[[tissue]][[trait_deg]]$adj.P.Val<0.05])
+  }
+}
+
+genes_DE_with_probe <- lapply(c("Ancestry", "Sex", "Age", "BMI"), function(trait) lapply(tissues, function(tissue) get_pairs(tissue, trait)))
+names(genes_DE_with_probe) <- c("Ancestry", "Sex", "Age", "BMI")
+for(trait in c("Ancestry", "Sex", "Age", "BMI")){names(genes_DE_with_probe[[trait]]) <- tissues}
+
+counts_p <- sapply(c("Ancestry", "Sex", "Age", "BMI"), function(trait) {
+  sapply(tissues, function(tissue) {
+    
+    # keep your sex tissue rule consistent with your earlier code
+    if (tissue %in% sex_tissues && trait == "Sex") return(NA_real_)
+    
+    df_sig <- DMPs_cor[[trait]][[tissue]]           # already p.adj < 0.05
+    den    <- genes_DE_with_probe[[trait]][[tissue]] # total DEGs with probes
+    
+    if (is.null(df_sig) || is.na(df_sig)[1] || nrow(df_sig) == 0) return(NA_real_)
+    if (is.null(den)   || is.na(den)   || den == 0)               return(NA_real_)
+    
+    num <- length(unique(df_sig$gene))
+    (num / den) * 100
+  })
+})
+
+counts_n <- sapply(traits, function(trait) {
+  sapply(tissues, function(tissue) {
+    
+    if (tissue %in% sex_tissues && trait == "Sex") return(NA_real_)
+    
+    df_sig <- DMPs_cor[[trait]][[tissue]]  # already p.adj < 0.05
+    if (is.null(df_sig) || all(is.na(df_sig)) || nrow(df_sig) == 0) return(NA_real_)
+    
+    length(unique(df_sig$gene))
+  })
+})
+
+labels_mat <- replace(round(counts_n, 0), is.na(counts_n), "")
+
+ht <- Heatmap(
+  counts_p,  # <-- COLORS come from % matrix
+  col = colorRamp2(seq(0, 50, length.out = 9), brewer.pal(9, "BuPu")),  # adjust 50->100 if needed
+  na_col = "white",
+  cluster_rows = FALSE,
+  cluster_columns = FALSE,
+  name = "% DEGs correlated",
+  row_names_side = "left",
+  column_names_side = "top",
+  column_names_rot = 60,
+  column_names_gp = gpar(fontsize = 12),
+  column_names_max_height = unit(9, "cm"),
+  row_names_gp = gpar(fontsize = 12),
+  left_annotation = row_ha_left,
+  cell_fun = function(j, i, x, y, width, height, fill) {
+    grid.text(my_pretty_num_function(labels_mat[i, j]), x, y, gp = gpar(fontsize = 12))
+  }
+)
