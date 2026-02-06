@@ -24,7 +24,7 @@ project_path <- paste0(first_dir, "/projects/bsc83/Projects/GTEx_v8/Methylation/
 start_time <- Sys.time()
 print("Reading data")
 
-gene_annotation  <- read.delim("/gpfs/projects/bsc83/Projects/GTEx_v8/Laura/00.Data/gencode.v26.GRCh38.genes.biotype_matched_v38.bed")
+gene_annotation  <- read.delim("/gpfs/projects/bsc83/Projects/GTEx_v8/Laura/00.Data/gencode.v26.GRCh38.genes.biotype_matched_v38.bed")[,c(9,10)]
 #gene_annotation <- read.delim("~/marenostrum/MN4/bsc83/Projects/GTEx_v8/Jose/04_Smoking/github/analysis/data/public/gencode.v26.GRCh38.genes.bed", header=F)[,c(6,7)]
 
 colnames(gene_annotation) <- c("gene", "symbol")
@@ -288,7 +288,7 @@ for (trait in individual_variables) {
   signif <- dea_res[dea_res$P.Value<0.05,]
   #signif <- dea_res[dea_res$adj.P.Val<0.05,]
   deg <- rownames(GTEx_v8[[tissue]][[trait_deg]][GTEx_v8[[tissue]][[trait_deg]][['adj.P.Val']]<0.05,])
-  deg_symbol <- (GTEx_v8[[tissue]][[trait_deg]][GTEx_v8[[tissue]][[trait_deg]][['adj.P.Val']]<0.05,"gene_name"])
+  deg_symbol <- (GTEx_v8[[tissue]][[trait_deg]][GTEx_v8[[tissue]][[trait_deg]][['adj.P.Val']]<0.05,"gene.name.x"])
   
   Sys.time()
   data_path <- "/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Data/"
@@ -352,12 +352,19 @@ for (trait in individual_variables) {
   
   rownames(gene_annotation) <- gene_annotation$gene
   genes_symbol <- gene_annotation[rownames(expr_residuals),'symbol']
+  #we have duplicated symbols therefore we will remove one 
+  expr_residuals$gene_symbol <- genes_symbol
+  expr_residuals <- expr_residuals[!duplicateCorrelation(expr_residuals$ge)]
+  expr_residuals <- expr_residuals[,-which(colnames(expr_residuals) == "gene_symbol")]
   rownames(expr_residuals) <- genes_symbol
   
   print("filter samples with both omics")
   colnames(expr_residuals) <- sapply(colnames(expr_residuals), function(id) paste0(strsplit(id, "-")[[1]][-3], collapse="-"))
   expr_residuals <- expr_residuals[,rownames(metadata_exp)]
   meth_residuals <- meth_residuals[,rownames(metadata)]
+  
+  
+  
   
   #identical(metadata$Sample, colnames(exprs_residuals))
   if(!identical(rownames(metadata), colnames(meth_residuals))){

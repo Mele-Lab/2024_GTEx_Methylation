@@ -166,7 +166,7 @@ g
 
 
 
-pdf(paste0(project_path, "/Plots/DEGs_DMPs.New_ancestry_continous_padjusted.pdf"), width = 10, height = 4)
+pdf(paste0(project_path, "/Plots/DEGs_DMPs_proportion_tissue.New_ancestry_continous_padjusted.pdf"), width = 10, height = 4)
 g
 dev.off()
 
