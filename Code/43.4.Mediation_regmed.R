@@ -24,7 +24,7 @@ project_path <- paste0(first_dir, "/projects/bsc83/Projects/GTEx_v8/Methylation/
 start_time <- Sys.time()
 print("Reading data")
 
-gene_annotation <- read.delim("/gpfs/projects/bsc83/MN4/bsc83/Projects/GTEx_v8/Jose/04_Smoking/github/analysis/data/public/gencode.v26.GRCh38.genes.bed", header=F)[,c(6,7)]
+gene_annotation  <- read.delim("/gpfs/projects/bsc83/Projects/GTEx_v8/Laura/00.Data/gencode.v26.GRCh38.genes.biotype_matched_v38.bed")
 #gene_annotation <- read.delim("~/marenostrum/MN4/bsc83/Projects/GTEx_v8/Jose/04_Smoking/github/analysis/data/public/gencode.v26.GRCh38.genes.bed", header=F)[,c(6,7)]
 
 colnames(gene_annotation) <- c("gene", "symbol")
