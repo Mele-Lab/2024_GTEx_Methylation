@@ -266,8 +266,11 @@ for (trait in individual_variables) {
     trait_dmp <- trait
   }
   dea_res <- readRDS(paste0(project_path,'Tissues/', tissue,"/DML_results_5_PEERs_continous.rds"))[[trait_dmp]]
-  GTEx_v8 <- readRDS('/gpfs/projects/bsc83/MN4/bsc83/Projects/ribosomal_proteins/Winona/2022_Ribosomal_analysis/Data/Data_set_1.rds')
+  tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate", "BreastMammaryTissue", "MuscleSkeletal", "KidneyCortex", "Testis", "WholeBlood")
+  GTEx_v8 <- lapply(c(tissues), function(t) readRDS(paste0(project_path,'/Data/DEA/', t, "/", t, "DEA_results_Ancestry_continous_.results.rds")))
+  names(GTEx_v8) <- tissues
   #GTEx_v8 <- readRDS('~/marenostrum/MN4/bsc83/Projects/ribosomal_proteins/Winona/2022_Ribosomal_analysis/Data/Data_set_1.rds')
+  for(tissue in tissues){names(GTEx_v8[[tissue]]) <- gsub("Ancestry_continous", "Ancestry", names(GTEx_v8[[tissue]]))}
   
   if (trait == 'EURv1') {
     trait_deg <- 'Ancestry'

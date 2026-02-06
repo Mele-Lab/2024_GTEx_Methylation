@@ -17,7 +17,7 @@ project_path <- paste0(first_dir, "Projects/GTEx_v8/Methylation/")
 tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate", "BreastMammaryTissue", "MuscleSkeletal", "KidneyCortex", "Testis", "WholeBlood")
 names <- c("Age", "Ancestry", "BMI", "Sex")
 
-tissue_info <- readRDS(paste0(first_dir, "Projects/GTEx_v8/Jose/00_Data/Tissue_info_whole.rds"))
+tissue_info <- readRDS(paste0(first_dir, "Projects/GTEx_v8/Methylation/Data/Tissue_info_whole.rds"))
 
 tissue_info <- tissue_info[!grepl("BreastMammaryTissue_", tissue_info$tissue_ID),]
 tissue_info <- tissue_info[tissue_info$tissue_ID %in% tissues,]
@@ -31,7 +31,7 @@ get_corr <- function(tissue, trait){
   if(tissue %in% sex_tissues & trait == "SEX2"){
     NA
   }else{
-    model <- readRDS(paste0(project_path, "Tissues/",tissue, "/",trait,'_Correlations_probes_genes_DEG_DMP.rds'))
+    model <- readRDS(paste0(project_path, "Tissues/",tissue, "/",trait,'_Correlations_probes_genes_DEG_DMP.padjusted_ancestry_c.rds'))
     #rownames(model[[trait]][model[[trait]]$adj.P.Val<0.05,])
     model
   }
@@ -139,7 +139,7 @@ for (tissue in tissues) {
   }
 
 
-saveRDS(to_plot_2, '/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Data/correlations_to_plot_2.new.rds')
-saveRDS(to_plot_1, '/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Data/correlations_to_plot_1.new.rds')
+saveRDS(to_plot_2, paste0(project_path, '/Data/correlations_to_plot_2_ancestry_continous.new.rds'))
+saveRDS(to_plot_1, paste0(project_path, "/Data/correlations_to_plot_1_ancestry_continous.new.rds"))
 
 
