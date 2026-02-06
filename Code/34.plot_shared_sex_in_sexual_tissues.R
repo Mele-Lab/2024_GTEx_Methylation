@@ -16,7 +16,7 @@ table(sharing_sex$dir)
 #setwd(paste0('~/marenostrum/', "Projects/GTEx_v8/Methylation/"))#
 tissues <- c('Ovary','Testis','Prostate')
 #### reading beta values ####
-beta <- lapply(tissues, function(tissue) readRDS(paste0(project_path, "Tissues/", tissue, "/data.rds")))
+beta <- lapply(tissues, function(tissue) readRDS(paste0("Tissues/", tissue, "/data.rds")))
 names(beta) <- tissues
 
 beta_df <- list()

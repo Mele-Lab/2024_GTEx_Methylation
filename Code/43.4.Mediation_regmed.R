@@ -354,7 +354,7 @@ for (trait in individual_variables) {
   genes_symbol <- gene_annotation[rownames(expr_residuals),'symbol']
   #we have duplicated symbols therefore we will remove one 
   expr_residuals$gene_symbol <- genes_symbol
-  expr_residuals <- expr_residuals[!duplicateCorrelation(expr_residuals$ge)]
+  expr_residuals <- expr_residuals[!duplicated(expr_residuals$genes_symbol)]
   expr_residuals <- expr_residuals[,-which(colnames(expr_residuals) == "gene_symbol")]
   rownames(expr_residuals) <- genes_symbol
   
@@ -416,11 +416,11 @@ for (trait in individual_variables) {
                        lapply(deg, function(gene)
                          g.lm_models[[gene]][["report_summary"]]))
   saveRDS(report_df,
-          paste0(project_path,'Tissues/',tissue,'/',trait,'.expr_meth.Report_summary.regmed.pval.rds'))
+          paste0(project_path,'Tissues/',tissue,'/',trait,'.expr_meth.Report_summary.regmed.pval_ancestry_continous.rds'))
   
   # d ----
   saveRDS(d,
-          paste0(project_path,'Tissues/',tissue,'/',trait,'.expr_meth.Classification_summary.regmed.pval.rds'))
+          paste0(project_path,'Tissues/',tissue,'/',trait,'.expr_meth.Classification_summary.regmed.pval_ancestry_continous.rds'))
   
 }
 
