@@ -355,8 +355,8 @@ for (trait in individual_variables) {
   #we have duplicated symbols therefore we will remove one 
   expr_residuals$gene_symbol <- genes_symbol
   expr_residuals <- expr_residuals[!duplicated(expr_residuals$genes_symbol)]
+  rownames(expr_residuals) <- expr_residuals$genes_symbol
   expr_residuals <- expr_residuals[,-which(colnames(expr_residuals) == "gene_symbol")]
-  rownames(expr_residuals) <- genes_symbol
   
   print("filter samples with both omics")
   colnames(expr_residuals) <- sapply(colnames(expr_residuals), function(id) paste0(strsplit(id, "-")[[1]][-3], collapse="-"))
