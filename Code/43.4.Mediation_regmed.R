@@ -347,8 +347,8 @@ for (trait in individual_variables) {
   
   # Susbet residuals of genes to be modelled ----
 
-    expr_residuals <- as.data.frame((as.matrix(expr_residuals[deg[deg %in% expressed_genes],])))
-    rownames(expr_residuals) <- deg[deg %in% expressed_genes]
+  expr_residuals <- as.data.frame((as.matrix(expr_residuals[deg[deg %in% expressed_genes],])))
+  rownames(expr_residuals) <- deg[deg %in% expressed_genes]
   
   rownames(gene_annotation) <- gene_annotation$gene
   genes_symbol <- gene_annotation[rownames(expr_residuals),'symbol']
@@ -360,10 +360,9 @@ for (trait in individual_variables) {
   
   print("filter samples with both omics")
   colnames(expr_residuals) <- sapply(colnames(expr_residuals), function(id) paste0(strsplit(id, "-")[[1]][-3], collapse="-"))
+  #common_cols <- intesect(colnames(expr_residuals), colnames(metadata_exp))
   expr_residuals <- expr_residuals[,rownames(metadata_exp)]
   meth_residuals <- meth_residuals[,rownames(metadata)]
-  
-  
   
   
   #identical(metadata$Sample, colnames(exprs_residuals))
