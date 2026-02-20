@@ -213,6 +213,37 @@ for (tissue in tissues) {
 }
 
 
+GOenrichments <- readRDS(paste0(first_dir, "/Projects/GTEx_v8/Methylation/varPart/All_tissues_highly_variable_CpGs_Functiona_enrichment.rds"))
+
+for(tissue in names(GOenrichments)){GOenrichments[[tissue]]$tissue <- tissue}
+
+go_df <- do.call(rbind.data.frame, GOenrichments) 
+
+# reduce GO enrichments for plotting 
+
+library(rrvgo)
+
+simMatrix <- calculateSimMatrix(rownames(go_df),
+                                orgdb="org.Hs.eg.db",
+                                ont="BP",
+                                method="Rel")
+
+scores <- setNames(-log10(go_df$qvalue), goxxx_df$ID)
+go_reduced <- reduceSimMatrix(simMatrix,
+                              scores,
+                              threshold=0.8,
+                              orgdb="org.Hs.eg.db")
+
+go_reduced_all <- merge(go_df, go_reduced, by.x="Description", by.y="term")
+
+go_reduced_count <- go_reduced_all  %>% group_by(parentTerm, celltype, direction) %>%
+  tally() %>%                          # Count occurrences
+  mutate(percentage = (n / sum(n)) * 100)
+  go_reduced_count <- go_reduced_all  %>% group_by(parentTerm, celltype, direction, type) %>%
+    tally() %>%                          # Count occurrences
+    mutate(percentage = (n / sum(n)) * 100)
+  
+
 
 
 

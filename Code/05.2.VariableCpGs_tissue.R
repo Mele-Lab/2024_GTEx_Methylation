@@ -92,7 +92,7 @@ var_cpg <-readRDS(paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/varP
 
 my_fisher_broad <- function(type, tissue, variable_cpg, universe){
   anno_universe <- intersect(universe, unique(anno$IlmnID))
-  var_set <- intersect(variable_cpgs, anno_universe)
+  var_set <- intersect(variable_cpg, anno_universe)
   # CpGs in the given state
   in_type <- intersect(anno_universe, anno$IlmnID[anno$Type == type])
   
@@ -187,24 +187,24 @@ saveRDS(fisher_results, paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylatio
 
 library(missMethyl)
 
-GOenrichments <- list()
-for (tissue in tissues) {
-  print(tissue)
-  GOenrichments[[tissue]] <- list()
-  high_var_cpgs <- readRDS(paste0(first_dir, "/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs.rds"))
-  all_cpgs <- readRDS(paste0(first_dir, "/Projects/GTEx_v8/Methylation/varPart/", tissue, "_all_CpGs.rds"))
-  res <- missMethyl::gometh(high_var_cpgs, all.cpg=all_cpgs,
-                            collection="GO", array.type="EPIC")
-  res <- res[res$ONTOLOGY=="BP",]
-  print(table(res$FDR<0.05))
-  saveRDS(res,paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs_Functiona_enrichment.rds") )
-  
-  if (sum(res$FDR<0.05) > 0) {
-    GOenrichments[[tissue]] <- res[res$FDR<0.05,]
-  }
-}
-
-saveRDS(GOenrichments,paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/varPart/All_tissues_highly_variable_CpGs_Functiona_enrichment.rds") )
-
-
+# GOenrichments <- list()
+# for (tissue in tissues) {
+#   print(tissue)
+#   GOenrichments[[tissue]] <- list()
+#   high_var_cpgs <- readRDS(paste0(first_dir, "/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs.rds"))
+#   all_cpgs <- readRDS(paste0(first_dir, "/Projects/GTEx_v8/Methylation/varPart/", tissue, "_all_CpGs.rds"))
+#   res <- missMethyl::gometh(high_var_cpgs, all.cpg=all_cpgs,
+#                             collection="GO", array.type="EPIC")
+#   res <- res[res$ONTOLOGY=="BP",]
+#   print(table(res$FDR<0.05))
+#   saveRDS(res,paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs_Functiona_enrichment.rds") )
+#   
+#   if (sum(res$FDR<0.05) > 0) {
+#     GOenrichments[[tissue]] <- res[res$FDR<0.05,]
+#   }
+# }
+# 
+# saveRDS(GOenrichments,paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/varPart/All_tissues_highly_variable_CpGs_Functiona_enrichment.rds") )
+# 
+# 
 
