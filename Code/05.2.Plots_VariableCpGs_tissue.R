@@ -103,7 +103,7 @@ plot_fisher_by_type <- function(type){
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
           panel.border = element_rect(colour = "black", linewidth=1)) +
-    #ggtitle(paste0(type))+
+    ggtitle(paste0(type))+
     scale_y_discrete(breaks=tissues)# + xlim(0, 3)
   
     
@@ -118,7 +118,7 @@ plot_fisher_by_type <- function(type){
     
     p <- ggarrange(g1, g2, labels = c("A", "B"),
                    common.legend = TRUE, legend = "right", widths = c(0.8,0.3))
-    pdf(file = paste0("/users/mariasopenar/cluster/Projects/GTEx_v8/Methylation/Plots/chromhmm/enrichment_HighVar_CpG_",trait,".pdf"), w = 8, h = 4)
+    pdf(file = paste0("/users/mariasopenar/cluster/Projects/GTEx_v8/Methylation/Plots/chromhmm/enrichment_HighVar_CpG_.pdf"), w = 8, h = 4)
     print(p)
     dev.off()
     return(p)

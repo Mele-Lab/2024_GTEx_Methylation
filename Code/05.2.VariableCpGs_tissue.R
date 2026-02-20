@@ -84,6 +84,50 @@ tissues <- c("BreastMammaryTissue","ColonTransverse","KidneyCortex","Lung",
 
 # get the enrichments in Enhancers and Promoters 
 
+
+anno <- read.delim(paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt"), sep = '\t', header = T)
+
+high_var_cpgs <- readRDS(paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs.rds"))
+var_cpg <-readRDS(paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/varPart/", tissue, "_all_CpGs.rds"))
+
+my_fisher_broad <- function(type, tissue, variable_cpg, universe){
+  anno_universe <- intersect(universe, unique(anno$IlmnID))
+  var_set <- intersect(variable_cpgs, anno_universe)
+  # CpGs in the given state
+  in_type <- intersect(anno_universe, anno$IlmnID[anno$Type == type])
+  
+  # 2x2 counts
+  a <- sum(var_set %in% in_type)                 # variable & in_type
+  b <- length(in_type) - a                       # not variable & in_type
+  c <- length(var_set) - a                       # variable & not in_type
+  d <- (length(anno_universe) - length(in_type)) - c   # not variable & not in_type
+
+  ### test significance
+  m <- matrix(c(a,b,c,d), nrow=2, byrow=TRUE)
+  rownames(m) <- c("InState", "NotInState")
+  colnames(m) <- c("Variable", "NotVariable")
+  print(m)
+
+  m[is.na(m)] <- 0
+  #m <- m[c(type,paste0('No ',type)),]
+  rownames(m) <- c(type, "Other")
+  colnames(m) <- c("Variable","No_Variable")
+  print(m)
+  f <- fisher.test(m)
+  print(f)
+  return(list("f" = f, "m" = m))
+  
+}
+
+types <- c("Gene_Associated", "Enhancer_Associated", "Promoter_Associated")
+fisher_results <- lapply(types, function(type) my_fisher_broad(type,tissue,high_var_cpgs, var_cpg ))
+names(fisher_results) <-types
+
+saveRDS(fisher_results, paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs_enrichment_BroadClassification.rds"))
+
+
+
+
 # 
 # my_fisher <- function(type, tissue, variable_cpgs, universe){
 #   
