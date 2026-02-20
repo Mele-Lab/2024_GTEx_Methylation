@@ -646,3 +646,14 @@ ggplot(genes_eur, aes(x=Freq, y=Var1)) +
   theme_classic()+ xlab('Nº CpGs') + ylab('')
 
 ### compare expression ####
+
+# Do enhancer contribute more to individual variance (age, sex and ancestry ) than promoters 
+
+chuncks <- c(1:16)
+
+#### reading varPart values ####
+beta <- lapply(chuncks, function(chnk) readRDS(paste0('varPart/', chnk, "_chunck_var_part.rds")))
+beta_df <- do.call("rbind",beta)
+
+
+

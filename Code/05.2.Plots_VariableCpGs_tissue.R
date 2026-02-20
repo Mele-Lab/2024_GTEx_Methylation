@@ -194,6 +194,7 @@ saveRDS(high_var_cpgs, paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation
 saveRDS(names(var_cpg), paste0("/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/varPart/", tissue, "_all_CpGs.rds"))
 
 
+library(missMethyl)
 
 
 GOenrichments <- list()
@@ -202,31 +203,15 @@ for (tissue in tissues) {
   GOenrichments[[tissue]] <- list()
   high_var_cpgs <- readRDS(paste0(first_dir, "/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs.rds"))
   all_cpgs <- readRDS(paste0(first_dir, "/Projects/GTEx_v8/Methylation/varPart/", tissue, "_all_CpGs.rds"))
-  for (trait in names(results_DML[[tissue]])[!is.na(results_DML[[tissue]])]) {
-    print(trait)
-    if (!trait %in% traits_to_use) {
-      next}
-    if (nrow(results_DML[[tissue]][[trait]][results_DML[[tissue]][[trait]]$adj.P.Val<0.05 & results_DML[[tissue]][[trait]]$logFC>0,]) < 1 ) {
-      next
-    }
-    tryCatch(
-      {res <- gometh(rownames(high_var_cpgs), all.cpg=rownames(all_cpgs),
+  res <- missMethyl::gometh(high_var_cpgs, all.cpg=all_cpgs,
                      collection="GO", array.type="EPIC")
-      res <- res[res$ONTOLOGY=="BP",]
-      print(table(res$FDR<0.05))
+  res <- res[res$ONTOLOGY=="BP",]
+  print(table(res$FDR<0.05))
       if (sum(res$FDR<0.05) > 0) {
-        GOenrichments[[tissue]][[trait]] <- res[res$FDR<0.05,]
+        GOenrichments[[tissue]] <- res[res$FDR<0.05,]
       }
-      },  error=function(cond) {
-        message("Error")
-        message("Here's the original error message:")
-        message(cond)
-        # Choose a return value in case of error
-        return(NA)
-      })
-    
-  }
 }
+
 
 
 
