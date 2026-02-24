@@ -11,7 +11,7 @@ setwd(paste0(first_dir, "/projects/bsc83/Projects/GTEx_v8/Methylation/"))# Paths
 sharing <- readRDS('Data/Sharing_DMP.rds')
 #get all sex CpGs
 sex_cpgs <- sharing$CG[sharing$trait == 'SEX2']
-table(sharing_sex$dir)
+#table(sharing_sex$dir)
 
 ### read betas 
 #setwd(paste0('~/marenostrum/', "Projects/GTEx_v8/Methylation/"))#
