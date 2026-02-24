@@ -80,7 +80,7 @@ ggplot(final_df[final_df$trait != 'BMI',], aes(abs(logFC_scaled), col=trait,
   facet_grid(. ~ tissue) + 
   scale_color_manual(values = c('#3D7CD0','#F0AE21','#3B734E'))+
   labs(title="",
-       y = "Empirical Cumulative density", x="abs(logFC)")+
+       y = "Empirical Cumulative density", x="abs(logFC)*10")+
   theme_classic()
 dev.off()
 

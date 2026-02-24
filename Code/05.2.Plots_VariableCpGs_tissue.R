@@ -215,35 +215,71 @@ for (tissue in tissues) {
 
 GOenrichments <- readRDS(paste0(first_dir, "/Projects/GTEx_v8/Methylation/varPart/All_tissues_highly_variable_CpGs_Functiona_enrichment.rds"))
 
-for(tissue in names(GOenrichments)){GOenrichments[[tissue]]$tissue <- tissue}
+for(tissue in names(GOenrichments)){GOenrichments[[tissue]]$tissue <- tissue
+GOenrichments[[tissue]]$ID <- rownames(GOenrichments[[tissue]])}
 
 go_df <- do.call(rbind.data.frame, GOenrichments) 
 
 # reduce GO enrichments for plotting 
 
-library(rrvgo)
+library(rrvgo);library(dplyr);library(forcats);library(scales)
 
-simMatrix <- calculateSimMatrix(rownames(go_df),
+simMatrix <- calculateSimMatrix(go_df$ID,
                                 orgdb="org.Hs.eg.db",
                                 ont="BP",
                                 method="Rel")
 
-scores <- setNames(-log10(go_df$qvalue), goxxx_df$ID)
+scores <- setNames(-log10(go_df$P.DE), go_df$ID)
 go_reduced <- reduceSimMatrix(simMatrix,
                               scores,
-                              threshold=0.8,
+                              threshold=0.88,
                               orgdb="org.Hs.eg.db")
 
-go_reduced_all <- merge(go_df, go_reduced, by.x="Description", by.y="term")
+go_reduced_all <- merge(go_df, go_reduced, by.x="TERM", by.y="term")
 
-go_reduced_count <- go_reduced_all  %>% group_by(parentTerm, celltype, direction) %>%
+go_reduced_count <- go_reduced_all  %>% group_by(parentTerm, tissue) %>%
   tally() %>%                          # Count occurrences
   mutate(percentage = (n / sum(n)) * 100)
-  go_reduced_count <- go_reduced_all  %>% group_by(parentTerm, celltype, direction, type) %>%
-    tally() %>%                          # Count occurrences
-    mutate(percentage = (n / sum(n)) * 100)
+  
+go_reduced_count2 <- go_reduced_count %>%
+  group_by(parentTerm) %>%
+  mutate(shared_tissues = n_distinct(tissue)) %>%
+  ungroup() %>%
+  mutate(parentTerm = fct_reorder(parentTerm, shared_tissues, .desc = FALSE))
+
+tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate", "BreastMammaryTissue", "MuscleSkeletal", "KidneyCortex", "Testis", "WholeBlood")
+go_reduced_count2$tissue <- factor(go_reduced_count2$tissue , levels = tissues)
+
+ggplot(go_reduced_count2, aes(x = tissue, y = parentTerm, size = n)) +
+  geom_point(shape = 21, stroke = 0.5, fill="#1b9e78ff", color="white") +
+  scale_size_continuous(name="Number of terms") +
+  theme_classic() +
+  theme(
+    legend.title = element_text(size=12),
+    axis.text.x = element_text(colour="black", size=12, angle=90, hjust=1, vjust=0.5),
+    axis.text.y = element_text(colour="black", size=12),
+    legend.text = element_text(colour="black", size=13),
+    axis.title.x = element_text(size=13),
+    legend.spacing.y = unit(-0.05, "cm"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(colour="black", linewidth=1)
+  ) +scale_y_discrete(labels = label_wrap(60))+
+  xlab("") + ylab("Parent Terms") +
+  labs(title="Highly variable CpGs across individuals")
   
 
+
+counts <- go_df[go_df$FDR < 0.05,] %>% group_by(TERM) %>%
+  tally() %>%                          # Count occurrences
+  mutate(percentage = (n / sum(n)) * 100)
+
+counts$Var2 <- ""
+
+ggplot(counts, aes(x = Var2, fill = as.factor(n))) +
+  geom_bar() + ylab('Nº of Terms') + xlab('') +
+  geom_text(aes(label=after_stat(count), y = after_stat(count)), stat='count', position='stack') +
+  labs(fill='Nº of Tissues') + scale_fill_grey(start = 0.9, end = 0) + theme_bw()
 
 
 
