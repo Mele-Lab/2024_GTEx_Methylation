@@ -53,49 +53,49 @@ g <- ggplot(to_plot,aes(tissue, beta)) + geom_violin(scale="width", fill="lightg
                      panel.grid.minor = element_blank(),)
 ggsave("Plots/methylation_sex_tissues_no_sex.pdf", g, device = "pdf", width = 5, height = 4)
 
-# ## run locally 
-# to_plot <- readRDS('~/marenostrum/Projects/GTEx_v8/Methylation/Data/no_sex_betas_sexual_tissues.rds')
-# ## now restric to shared cpgs in polycomb regions
-# sharing <- readRDS('~/marenostrum/Projects/GTEx_v8/Methylation/Data/Sharing_DMP.rds')
-# shared_cpgs <- readRDS('~/marenostrum/Projects/GTEx_v8/Methylation/Data/chromHMM_shared_9tissues.rds')
-# 
-# to_plot <- to_plot[to_plot$cpg %in% shared_cpgs$name_ann[shared_cpgs$region_chromhmm %in% c('ReprPC')],]
-# 
-# library(dplyr)
-# df.summary <- to_plot %>%
-#   group_by(tissue) %>%
-#   summarise(
-#     sd = sd(beta, na.rm = TRUE),
-#     beta = median(beta)
-#   )
-# df.summary
-# 
-# my_comparisons <- list( c("Ovary", "Prostate"), c("Ovary", "Testis"))
-# 
-# g <- ggplot(to_plot,aes(tissue, beta)) + geom_violin(scale="width", fill="lightgray") + xlab("") + ylab("Beta values") +
-#   geom_boxplot(col = "black",
-#                fill = "white",
-#                outlier.shape = NA,
-#                notch = T,
-#                width = 0.25) +
-#   geom_jitter(col = "black", 
-#               alpha = 0.1,
-#               size = 0.8) +
-#   geom_line(aes(group = 1), data = df.summary) +
-#   stat_compare_means(label = "p.format", paired = TRUE, comparisons = my_comparisons) +
-#   theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-#                      panel.grid.major = element_blank(),
-#                      panel.grid.minor = element_blank(),)
-# ggsave("~/marenostrum/Projects/GTEx_v8/Methylation/Plots/methylation_sex_tissues_shared.v2.pvalues.pdf", g, device = "pdf", width = 5, height = 4)
-# 
-# library(ggpubr)
-# ggpaired(to_plot[to_plot$tissue %in% c('Ovary','Testis'),], x = "tissue", y = "beta",
-#          line.color = "gray", line.size = 0.4, color = 'black', fill='white',
-#          palette = "jco")+
-#   stat_compare_means(paired = TRUE)
-# 
-# ggpaired(to_plot[to_plot$tissue %in% c('Ovary','Prostate'),], x = "tissue", y = "beta",
-#          line.color = "gray", line.size = 0.4, color = 'black', fill='white',
-#          palette = "jco")+
-#   stat_compare_means(paired = TRUE)
-# 
+## run locally
+to_plot <- readRDS('~/cluster/Projects/GTEx_v8/Methylation/Data/no_sex_betas_sexual_tissues.rds')
+## now restric to shared cpgs in polycomb regions
+sharing <- readRDS('~/marenostrum/Projects/GTEx_v8/Methylation/Data/Sharing_DMP.rds')
+shared_cpgs <- readRDS('~/cluster/Projects/GTEx_v8/Methylation/Data/chromHMM_shared_9tissues.rds')
+
+to_plot <- to_plot[to_plot$cpg %in% shared_cpgs$name_ann[shared_cpgs$region_chromhmm %in% c('ReprPC')],]
+
+library(dplyr)
+df.summary <- to_plot %>%
+  group_by(tissue) %>%
+  summarise(
+    sd = sd(beta, na.rm = TRUE),
+    beta = median(beta)
+  )
+df.summary
+
+my_comparisons <- list( c("Ovary", "Prostate"), c("Ovary", "Testis"))
+
+g <- ggplot(to_plot,aes(tissue, beta)) + geom_violin(scale="width", fill="lightgray") + xlab("") + ylab("Beta values") +
+  geom_boxplot(col = "black",
+               fill = "white",
+               outlier.shape = NA,
+               notch = T,
+               width = 0.25) +
+  geom_jitter(col = "black",
+              alpha = 0.1,
+              size = 0.8) +
+  geom_line(aes(group = 1), data = df.summary) +
+  stat_compare_means(label = "p.format", paired = TRUE, comparisons = my_comparisons) +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+                     panel.grid.major = element_blank(),
+                     panel.grid.minor = element_blank(),)
+ggsave("~/cluster/Projects/GTEx_v8/Methylation/Plots/methylation_sex_tissues_shared.v2.pvalues.pdf", g, device = "pdf", width = 5, height = 4)
+
+library(ggpubr)
+ggpaired(to_plot[to_plot$tissue %in% c('Ovary','Testis'),], x = "tissue", y = "beta",
+         line.color = "gray", line.size = 0.4, color = 'black', fill='white',
+         palette = "jco")+
+  stat_compare_means(paired = TRUE)
+
+ggpaired(to_plot[to_plot$tissue %in% c('Ovary','Prostate'),], x = "tissue", y = "beta",
+         line.color = "gray", line.size = 0.4, color = 'black', fill='white',
+         palette = "jco")+
+  stat_compare_means(paired = TRUE)
+
