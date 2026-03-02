@@ -19,12 +19,15 @@ parser <- add_option(parser, opt_str=c("-r", "--remove_admixed"), type="logical"
 parser <- add_option(parser, opt_str=c("-s", "--smoking_status"), type="logical",
                       dest="smoking_status",
                       help="smoking information")
+parser <- add_option(parser, opt_str=c("-c", "--cell_composition"), type="logical",
+                     dest="xcell",
+                     help="add XCell score normalization")
 options=parse_args(parser)
 tissue=options$tissue
 ancestry=options$ancestry
 remove_admixed <- options$remove_admixed
 smoking <- options$smoking_status
-
+xcell <- options$xcell
 
 # tissue <- "Lung"
 
@@ -65,6 +68,24 @@ if(ancestry=="continous"){
  colnames(metadata) <- gsub("Ancestry_continous", "EURv1", colnames(metadata))
 }else if (ancestry=="categorical"){
   colnames(metadata) <- gsub("Ancestry", "EURv1",colnames(metadata))
+}
+
+#correct for cell type composition inferred from RNA-seq expression
+if(xcell){
+  cell_props <- read.table(paste0(first_dir, "Projects/GTEx_v8/Methylation/GTEx_Analysis_v8_xCell_scores_7_celltypes.txt"), header=T, row.names = 1)
+  md_info_short <- readRDS(paste0(first_dir, "Projects/GTEx_v8/Methylation/Data/donor_sample_correspondance.rds"))
+  donor_sample <- md_info_short[md_info_short$TISSUE == tissue,]
+    cell_props <- t(cell_props[, colnames(cell_props) %in% unique(donor_sample$SUBJID_XCell)])
+    rownames(cell_props) <- str_extract(rownames(cell_props), "^[^.]+\\.[^.]+")
+    rownames(cell_props) <- gsub("\\.", "-",  rownames(cell_props)) 
+    length(metadata$SUBJID)
+    length(intersect(rownames(cell_props), metadata$SUBJID))
+    print("Correcting per cell type composition based on gene expression --- \n")
+    print(paste0("We keep ",  length(intersect(rownames(cell_props), metadata$SUBJID)), " samples out of ",     length(metadata$SUBJID)))
+    
+    stats_
+
+metadata <- metadata%>% inner_join(cell_props, by= )
 }
 
 metadata$SEX <- as.factor(metadata$SEX)

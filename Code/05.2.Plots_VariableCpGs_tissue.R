@@ -74,6 +74,15 @@ fisher_results <- do.call(rbind.data.frame, lapply(tissues, function(tissue) {
 }))
 
 
+
+fisher_results <- do.call(rbind.data.frame, lapply(tissues, function(tissue) {
+  x <- readRDS(paste0(first_dir, "/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs_enrichment_BroadClassification.rds"))
+  n <- readRDS(paste0(first_dir, "/Projects/GTEx_v8/Methylation/varPart/", tissue, "_highly_variable_CpGs.rds") )        
+  fish_table <- read_data_fisher(c("Gene_Associated", "Enhancer_Associated", "Promoter_Associated"), x, tissue, length(n))
+  return(fish_table)
+}))
+
+
 colors_traits <- list('AGE'=c('#3D7CD0','#B4D6F6'),
                       'SEX2'=c('#3B734E','#89AA94'),
                       'EURv1'=c('#F0AE21','#F9DE8B'))
@@ -108,7 +117,7 @@ plot_fisher_by_type <- function(type){
   
     
     g2 <- ggplot(fisher_results[fisher_results$region==type,]) + geom_col(aes(sample_size, tissue), width = 0.6, fill="#1b9e78ff") +
-      theme_classic() + xlab("Number of highly variable CpGs") + ylab("") +
+      theme_classic() + xlab(" N highly variable CpGs") + ylab("") +
       #scale_fill_manual(values=colors_traits[[trait]]) +
       theme(legend.position = "none",
             axis.text.x = element_text(colour="black", size=13),
@@ -116,9 +125,9 @@ plot_fisher_by_type <- function(type){
             axis.title.x = element_text(size=16)) +
       scale_x_continuous(n.breaks=3)
     
-    p <- ggarrange(g1, g2, labels = c("A", "B"),
+    p <- ggarrange(g1, g2,
                    common.legend = TRUE, legend = "right", widths = c(0.8,0.3))
-    pdf(file = paste0("/users/mariasopenar/cluster/Projects/GTEx_v8/Methylation/Plots/chromhmm/enrichment_HighVar_CpG_.pdf"), w = 8, h = 4)
+    pdf(file = paste0(first_dir,"/Projects/GTEx_v8/Methylation/Plots/chromhmm/enrichment_HighVar_CpG_BroadClass_",type,".pdf"), w = 8, h = 4)
     print(p)
     dev.off()
     return(p)
@@ -128,6 +137,8 @@ plot_fisher_by_type <- function(type){
 plot_fisher_by_type("Enh")
 plot_fisher_by_type("TSS")
 
+plot_fisher_by_type("Enhancer_Associated")
+plot_fisher_by_type("Promoter_Associated")
 
 
 sex_tissues <- c('Ovary','Prostate','Testis')

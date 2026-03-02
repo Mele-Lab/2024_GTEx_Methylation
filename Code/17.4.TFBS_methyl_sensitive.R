@@ -30,7 +30,7 @@ cat(Sys.time(), "\n")
 
 # annotation positions
 annotation <- read.delim(paste0(basepath, "Projects/GTEx_v8/Methylation/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt"), sep = '\t', header = T)
-anno <- read.csv(past0(scratch, "/Oliva/GPL21145_MethylationEPIC_15073387_v-1-0_processed_jose.csv"))
+anno <- read.csv(paste0(scratch, "/Oliva/GPL21145_MethylationEPIC_15073387_v-1-0_processed_jose.csv"))
 #read DMPs
 dnp_list <-  readRDS(paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/DML_results_5_PEERs_continous.rds"))
 dmp <- do.call(rbind, Map(function(df, nm) {df$trait <- nm
