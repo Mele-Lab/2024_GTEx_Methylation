@@ -63,7 +63,7 @@ cat("Unique DMP CpGs:", length(dmp_cpgs), "\n")
 # ----------------------------
 # Define background CpGs (promoter+enhancer CpGs with coords)
 # ----------------------------
-bg <- data.table(cpg = unique(valid_cpgs))
+bg <- data.table(cpg = unique(valid_cpgs)) # check
 bg <- merge(bg, anno, by.x="cpg", by.y="IlmnID", all.x=TRUE)
 bg <- bg[!is.na(chr) & !is.na(pos), ]
 bg_cpgs <- unique(bg$cpg)
@@ -92,7 +92,6 @@ print("Running FIMO...")
 motif_file <- paste0( scratch, "JASPAR2022_CORE_vertebrates_non-redundant_pfms_meme.txt")
 outdir <- paste0(scratch, "FIMO/", tissue, "_meth_sensitive")
 system(paste( "fimo --thresh 1e-4 --oc", outdir, motif_file, fa_file ))
-
 
 fimo <- fread(paste0(outdir, "/fimo.tsv"))
 center <- 26
