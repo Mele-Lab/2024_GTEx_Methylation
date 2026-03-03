@@ -181,12 +181,38 @@ p_smoking<- plot_overlap(results_overlap_smoking)
 
 # plot directionality of ancestry-DMPs
 
+library(dplyr)
 ancestry_DML <- readRDS(paste0(project_path, "/Tissues/Ancestry_DML_signif.rds"))
 ancestry_DML$tissue <- sub("\\..*", "", rownames(ancestry_DML))
+ancestry_DML$direction <- ifelse(ancestry_DML$logFC > 0, "EA", "AA")
+ancestry_DML$tissue <- factor(ancestry_DML$tissue, levels=rev(tissues))
 
-ggplot()
+ancestry_count <- ancestry_DML %>% group_by(tissue, direction) %>% count()
+eur <- ancestry_DML %>% filter(logFC > 0) %>% group_by(tissue, direction) %>% count()
+afr <- ancestry_DML %>% filter(logFC < 0) %>% group_by(tissue, direction) %>% count()
 
 
+cols_ancestry <- c('EA'='#F0AE21','AA'='#F9DE8B')
 
+direction_plot <- ggplot(ancestry_count, aes(x = tissue, y = n, fill = direction)) +
+  geom_col(data = eur, aes(x = tissue, y = n, fill = direction), alpha = 1, position = "dodge") +
+  geom_col(data = afr, aes(x = tissue, y = -n, fill = direction), alpha = 1, position = "dodge") +
+  geom_hline(yintercept = 0, linetype = "dashed", linewidth = 0.3) +
+  ylab("Number of CpGs") +xlab("") +coord_flip()+geom_text(data = afr, aes(label = n, x = tissue, y = -n), vjust = 0.5, hjust = 1, size = 3, position = position_dodge(width = 1)) +
+  geom_text(data = eur, aes(label = n, x = tissue, y = n), hjust = -0, size = 3, position = position_dodge(width = 1)) +
+  scale_fill_manual(values=cols_ancestry) +
+  scale_y_continuous(labels = abs) + theme(legend.title = element_blank(),
+                                            axis.text.x = element_text(colour="black", size=12),
+                                            axis.text.y = element_text(colour="black", size=12),
+                                            legend.text = element_text(colour="black", size=12),
+                                            axis.title.x = element_text(size=12),
+                                            legend.spacing.y = unit(-0.05, "cm"),
+                                            panel.grid.major = element_blank(),
+                                            panel.grid.minor = element_blank(),
+                                            panel.border = element_rect(colour = "black", linewidth=1), legend.position="top")
 
+pdf('~/cluster//Projects/GTEx_v8/Methylation/Plots/Ancestry_DMP_direction.pdf', 
+    width = 4.68, height = 3.85)
+print(direction_plot)
+dev.off()
 

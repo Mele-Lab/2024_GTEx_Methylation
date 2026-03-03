@@ -3,18 +3,20 @@ library(variancePartition)
 first_dir <- "~/"
 #setwd(paste0(first_dir, "marenostrum/Projects/GTEx_v8/Methylation/"))
 basepath <- "/Users/mariasopenar/cluster/"
-setwd(paste0(basepath, "/Projects/GTEx_v8/Methylation/"))
+project_path <- paste0(basepath, "/Projects/GTEx_v8/Methylation/")
 
 # -------------- #
 print(Sys.time())
 #-------------- #
 
-tissues <- list.dirs("Tissues/", full.names = F)[-1]
-tissues <- tissues[-grep('Old',tissues)]
+# tissues <- list.dirs("Tissues/", full.names = F)[-1]
+# tissues <- tissues[-grep('Old',tissues)]
+tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate", "BreastMammaryTissue", "MuscleSkeletal", "KidneyCortex", "Testis", "WholeBlood")
+
 chuncks <- c(1:16)
 
 #### reading varPart values ####
-beta <- lapply(chuncks, function(chnk) readRDS(paste0('varPart/', chnk, "_chunck_var_part.rds")))
+beta <- lapply(chuncks, function(chnk) readRDS(paste0(project_path, 'varPart/', chnk, "_chunck_var_part.rds")))
 beta_df <- do.call("rbind",beta)
 
 #### plot 
@@ -61,6 +63,8 @@ Sys.time()
 #data_path <- "~/marenostrum/Projects/GTEx_v8/Methylation/Data/"
 #annotation <- read.delim(paste0(data_path, "Methylation_Epic_gene_promoter_enhancer_processed.txt"), sep = '\t', header = T)
 annotation <- read.delim(paste0(basepath, "Projects/GTEx_v8/Methylation/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt"), sep = '\t', header = T)
+#annotation <- read.csv(paste0(first_dir, "/Projects/GTEx_v8/Methylation/Data/GPL21145_MethylationEPIC_15073387_v-1-0_processed.csv"))
+
 Sys.time()
 
 #Running a different analysis per promoter, enhancer and gene body
@@ -69,6 +73,11 @@ beta_df$Type[rownames(beta_df) %in% annotation$IlmnID[annotation$Type=="Promoter
 beta_df$Type[rownames(beta_df) %in% annotation$IlmnID[annotation$Type=="Enhancer_Associated"]] <- "Enhancer_Associated"
 beta_df$Type[rownames(beta_df) %in% annotation$IlmnID[annotation$Type=="Gene_Associated"]] <-"Gene_Associated"
 table(beta_df$Type)
+
+# now we'll do it with more resolution of annotation 
+library(dplyr)
+beta_df <- beta_df %>% mutate(IlmnID=rownames(beta_df))%>% left_join(annotation[, c("IlmnID", "UCSC_RefGene_Group")], by="IlmnID") %>% mutate(Type=UCSC_RefGene_Group)
+beta_df[is.na(beta_df$Type),]$Type <- "Other"
 
 ggplot(beta_df, aes(x=Tissue, y=SUBJID, color=Type)) + 
   geom_point(alpha = 0.3) + 
@@ -287,14 +296,15 @@ ggplot(betas_locations_m, aes(x = Proportion, fill=Variable)) +
 dev.off()
 
 ### enrichments #####
-my_fisher <- function(type, betas_locations_m=betas_locations_m){
+my_fisher <- function(type, betas_locations=betas_locations_m){
   #             DS      Not DS
   # type
   # other_types
   print(type)
   
-  type_df <- betas_locations_m[betas_locations_m$Variable=='Tissue' & betas_locations_m$Proportion>0.5,]
-  other_type <- betas_locations_m[betas_locations_m$Variable=='Tissue' & betas_locations_m$Proportion<=0.5,]
+  type_df <- betas_locations[betas_locations$Variable=='Tissue' & betas_locations$Proportion>0.5,]
+  other_type <- betas_locations[betas_locations$Variable=='Tissue' & betas_locations$Proportion<=0.5,]
+  print(type)
   type_diff <- nrow(type_df[type_df$Type == type,])
   type_notdiff <- nrow(type_df) - type_diff
   other_type_diff <- nrow(other_type[other_type$Type == type,])
@@ -315,6 +325,7 @@ my_fisher <- function(type, betas_locations_m=betas_locations_m){
 }
 # Two-tailed Fisher test
 #families <- as.vector(unique(chromhmm_cpgs$Lung$region_chromhmm))
+betas_locations_m[betas_locations_m$Type == "",]$Type <-"Other"
 families <- unique(betas_locations_m$Type)
 fisher_results <- lapply(families, function(region) my_fisher(region))
 names(fisher_results) <- families
@@ -372,14 +383,15 @@ results_fisher <- read_data(families, fisher_results)
 results_fisher$sig[results_fisher$sig =="Sig"] <- "FDR < 0.05"
 results_fisher$sig[results_fisher$sig =="not Sig"] <- "FDR >= 0.05"
 results_fisher$sig <- factor(results_fisher$sig, levels=c("FDR >= 0.05", "FDR < 0.05"))
-results_fisher$region <- factor(results_fisher$region, levels=rev(c("Other","Gene_Associated","Enhancer_Associated","Promoter_Associated")))
-g <- ggplot(results_fisher, aes(x=log2(oddsRatio), y=region, colour=sig)) +
+#results_fisher$region <- factor(results_fisher$region, levels=rev(c("Other","Gene_Associated","Enhancer_Associated","Promoter_Associated")))
+results_fisher$region <- gsub("Other", "Intergenic", results_fisher$region)
+g <- ggplot(results_fisher[results_fisher$region != "Other",], aes(x=log2(oddsRatio), y=region, colour=sig)) +
   geom_errorbar(aes(xmin=log2(CI_down), xmax=log2(CI_up)), width=.3) +
   geom_vline(xintercept = 0) +
   #xlim(0,20) + #Only for Lung to show the 0
   geom_point(size=3) + ylab('') + theme_bw() +
-  #scale_colour_manual(values=c("#BFC0C0", "#E26D5C")) +
-  scale_colour_manual(values=c("#E26D5C")) +
+  scale_colour_manual(values=c("#BFC0C0", "#E26D5C")) +
+  #scale_colour_manual(values=c("#E26D5C")) +
   xlab("log2(Odds ratio)") +
   theme(legend.title = element_blank(),
         axis.text.x = element_text(colour="black", size=13),
@@ -389,9 +401,9 @@ g <- ggplot(results_fisher, aes(x=log2(oddsRatio), y=region, colour=sig)) +
         legend.spacing.y = unit(-0.05, "cm"),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        panel.border = element_rect(colour = "black", linewidth=1)) +
-  scale_y_discrete(breaks=c("Other","Gene_Associated","Enhancer_Associated","Promoter_Associated"),
-                   labels=c("Intergenic","Gene-Associated","Enhancer-Associated","Promoter-Associated"))# + xlim(0, 3)
+        panel.border = element_rect(colour = "black", linewidth=1)) #+
+  #scale_y_discrete(breaks=c("Other","Gene_Associated","Enhancer_Associated","Promoter_Associated"),
+   #                labels=c("Intergenic","Gene-Associated","Enhancer-Associated","Promoter-Associated"))# + xlim(0, 3)
 # pdf(file = paste0("~/marenostrum/Projects/GTEx_v8/Methylation/Plots/genomic_location_shared",'_',trait,".pdf"), w = 6, h = 3.5)
 # print(g)
 # dev.off()
