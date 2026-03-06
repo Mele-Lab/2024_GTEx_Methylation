@@ -28,8 +28,21 @@ tissue <- opt$tissue
 cat("Processing tissue:", tissue, "\n")
 cat(Sys.time(), "\n")
 
-# annotation positions
-annotation <- read.delim(paste0(basepath, "Projects/GTEx_v8/Methylation/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt"), sep = '\t', header = T)
+
+# ---------------------------------------------------------
+# Load annotation (same one used in your working script)
+# ---------------------------------------------------------
+
+annotation <- fread(paste0(basepath,
+         "Projects/GTEx_v8/Methylation/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt"))
+
+annotation <- annotation[annotation$Type %in% c("Promoter_Associated","Enhancer_Associated"),]
+
+
+# extract chr and pos from Phantom5_Enhancers column
+annotation[, chr := sub(":.*", "", Phantom5_Enhancers)]
+annotation[, pos := as.integer(sub(".*:(\\d+)-.*", "\\1", Phantom5_Enhancers))]
+
 #read DMPs
 dnp_list <-  readRDS(paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/DML_results_5_PEERs_continous.rds"))
 dmp <- do.call(rbind, Map(function(df, nm) {df$trait <- nm
@@ -38,63 +51,65 @@ return(df)}, dnp_list, names(dnp_list)))
 dmp <- dmp[dmp$adj.P.Val < 0.05,]
 
 # keep enhancers and promoters
-valid_cpgs <- annotation[annotation$Type %in% c("Promoter_Associated", "Enhancer_Associated"), "IlmnID"]
-dmp <- dmp[dmp$cpg %in% valid_cpgs, ]
+dmp <- dmp[dmp$cpg %in% annotation$IlmnID, ]
 cat("Total DMP rows:", nrow(dmp), "\n")
 
+# ---------------------------------------------------------
+# Add CpG genomic coordinates
+# ---------------------------------------------------------
 
-# add chromosomal location in DMP results 
-anno <- fread(paste0(scratch, "/Oliva/GPL21145_MethylationEPIC_15073387_v-1-0_processed_jose.csv"))
-# adapt column names if necessary
-setnames(anno,
-         old = c("IlmnID","CHR","MAPINFO"),
-         new = c("cpg","chr","pos"))
+dmp <- merge(
+  dmp,
+  annotation[, .(IlmnID, chr, pos)],
+  by.x="cpg",
+  by.y="IlmnID"
+)
 
-anno <- anno[, .(cpg, chr, pos)]
+dmp <- as.data.table(dmp)
+# ensure chr format matches BSgenome
+dmp[, chr := paste0("chr", gsub("chr","",chr))]
 
-dmp <- merge(dmp, anno, by="cpg", all.x=TRUE)
-
-cat("Missing coordinates:", sum(is.na(dmp$chr)), "\n")
-
-dmp <- dmp[!is.na(dmp$chr) & !is.na(dmp$pos), ]
-
-dmp_cpgs <- unique(dmp$cpg)
-cat("Unique DMP CpGs:", length(dmp_cpgs), "\n")
+valid_chr <- paste0("chr", c(1:22,"X","Y"))
+dmp <- dmp[dmp$chr %in% valid_chr,]
 
 # ----------------------------
 # Define background CpGs (promoter+enhancer CpGs with coords)
 # ----------------------------
-bg <- data.table(cpg = unique(valid_cpgs)) # check
-bg <- merge(bg, anno, by="cpg", all.x=TRUE)
-bg <- bg[!is.na(chr) & !is.na(pos), ]
-bg_cpgs <- unique(bg$cpg)
-cat("Background CpGs (prom+enh):", length(bg_cpgs), "\n")
+# ---------------------------------------------------------
+# Generate FASTA around CpG
+# ---------------------------------------------------------
 
-#generate FASTA sequences to input to FIMO 
-get_snp_seq <- function(chr, pos, allele, flank = 25) {
-  chr <- as.character(chr)[1]
-  pos <- as.integer(pos)[1]
-  start <- pos - flank
-  end   <- pos + flank
-  
-  if (start < 1) return(NA_character_)
-  
-  as.character(
-    getSeq(BSgenome.Hsapiens.UCSC.hg38,
-           names = chr,
-           start = start,
-           end   = end)
-  )
+cat("Generating FASTA...\n")
 
+genome <- BSgenome.Hsapiens.UCSC.hg19
+chr_lengths <- seqlengths(genome)
+
+get_cpg_seq <- function(chr,pos,flank=25){
+  
+  start <- pos-flank
+  end <- pos+flank
+  
+  if(start < 1) start <- 1
+  if(end > chr_lengths[chr]) end <- chr_lengths[chr]
+  
+  as.character(getSeq(genome,
+                      names=chr,
+                      start=start,
+                      end=end))
 }
 
-fa_file<- paste0("/gpfs/scratch/bsc83/MN4/bsc83/bsc83535/GTEx/v9/FIMO/", tissue, ".fa")
-dmp$chr <- paste0("chr", dmp$chr)
-valid_chr <- paste0("chr", c(1:22, "X", "Y", "M"))
-dmp <- dmp[as.character(dmp$chr) %in% valid_chr, ]
+seqs <- vapply(
+  seq_len(nrow(dmp)),
+  function(i) get_cpg_seq(dmp$chr[i], dmp$pos[i]),
+  character(1)
+)
 
-seqs <- mapply(get_snp_seq, dmp$chr, dmp$pos)
-write.fasta( sequences = as.list(seqs),  names = dmp$cpg,  file.out = fa_file, nbchar = 60 )
+valid <- !is.na(seqs)
+
+dmp <- dmp[valid]
+seqs <- seqs[valid]
+
+fa_file <- paste0(scratch,"FIMO/",tissue,"_CpG.fa")write.fasta( sequences = as.list(seqs),  names = dmp$cpg,  file.out = fa_file, nbchar = 60 )
 
 
 # ----------------------------

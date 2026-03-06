@@ -217,6 +217,7 @@ print(direction_plot)
 dev.off()
 
 
+<<<<<<< HEAD
 # plot smoking status per ancesrty ----
 smoking_info <- read.table(paste0(project_path, "Donor_IDs_with_smoking_status.txt"), header = T)
 colnames(smoking_info) <- c("SUBJID", "SmokerStatus", "Smoking")
@@ -250,3 +251,101 @@ prop.test(
   x = tab[, "TRUE"],
   n = rowSums(tab)
 )
+=======
+# now do it per chromhmm
+
+library(data.table)
+library(dplyr)
+library(valr)
+library(ggplot2)
+project_path <- "~/cluster/Projects/GTEx_v8/Methylation"
+tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate", "BreastMammaryTissue", "MuscleSkeletal", "KidneyCortex", "Testis", "WholeBlood")
+
+ancestry_DML <- readRDS(paste0(project_path,"/Tissues/Ancestry_DML_signif.rds"))
+
+ancestry_DML$tissue <- sub("\\..*", "", rownames(ancestry_DML))
+ancestry_DML$direction <- ifelse(ancestry_DML$logFC > 0, "EA", "AA")
+
+
+#Load CpG coordinates (EPIC annotation)
+annotation <- read.csv(paste0(project_path,"/Data/GPL21145_MethylationEPIC_15073387_v-1-0_processed.csv"))
+
+ann_bed <- annotation[
+  !is.na(annotation$MAPINFO) & !is.na(annotation$CHR),] %>%
+  dplyr::select(chrom=CHR, start=MAPINFO, end=MAPINFO, name=IlmnID) %>%
+  distinct()
+
+ann_bed$chrom <- paste0("chr", ann_bed$chrom)
+ann_bed$start <- ann_bed$start - 1
+
+#chromHMM
+chromhmm_dir <- paste0(project_path,"/ChromHMM/")
+files <- list.files('/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Data/EpiMap/', pattern='.bed.gz',full.names=T)
+
+names_chrom <- c( "Lung","ColonTransverse","Ovary","Prostate",  "Breast","MuscleSkeletal","KidneyCortex","Testis","PBMC")
+
+chromhmm <- lapply(names_chrom, function(tis){
+  f <- files[grep(tis, files)]
+  read.delim(f, header=FALSE, sep="\t")
+  
+})
+
+names(chromhmm) <- names_chrom
+
+# Intersect CpGs with ChromHMM regions
+
+chromhmm_cpgs <- lapply(names_chrom, function(tis){
+  chrom_df <- chromhmm[[tis]][,1:4]
+  colnames(chrom_df) <- c("chrom","start","end","region")
+  bed_intersect( ann_bed,chrom_df,suffix=c("_ann","_chromhmm")) %>% dplyr::select(cpg=name_ann, chromHMM=region_chromhmm) %>% distinct()
+  
+})
+
+names(chromhmm_cpgs) <- names_chrom
+
+
+# Assign ChromHMM state to ancestry DMP CpGs
+ancestry_DML$cpg <- sub(".*\\.", "", rownames(ancestry_DML))
+ancestry_DML$chromHMM <- NA
+
+for(tis in names_chrom){
+  idx <- ancestry_DML$tissue == tis
+  ancestry_DML$chromHMM[idx] <- chromhmm_cpgs[[tis]]$chromHMM[match( ancestry_DML$cpg[idx],chromhmm_cpgs[[tis]]$cpg)  ]
+}
+
+# remove CpGs without ChromHMM annotation
+ancestry_DML <- ancestry_DML[!is.na(ancestry_DML$chromHMM),]
+saveRDS(ancestry_DML, paste0(project_path,"/Tissues/Ancestry_DML_signif_chromhmm.rds"))
+
+
+# 6. Count CpGs per tissue / direction / ChromHMM
+ancestry_DML_chromhmm <- readRDS(paste0(project_path,"/Tissues/Ancestry_DML_signif_chromhmm.rds"))
+ancestry_DML_chromhmm$chromHMM[ancestry_DML_chromhmm$chromHMM %in% c("TssFlnkD", "TssFlnk", "TssFlnkU","TssA")] <- "TSS"
+ancestry_DML_chromhmm$chromHMM[ancestry_DML_chromhmm$chromHMM %in% c("EnhA2", "EnhA1","EnhWk","EnhG1", "EnhG2")] <- "Enh"
+ancestry_DML_chromhmm$chromHMM[ancestry_DML_chromhmm$chromHMM %in% c("ReprPCWk","ReprPC")] <- "ReprPC"
+ancestry_DML_chromhmm$chromHMM[ancestry_DML_chromhmm$chromHMM %in% c("TxWk","Tx")] <- "Tx"
+ancestry_count <- ancestry_DML_chromhmm %>% group_by(tissue, direction, chromHMM) %>%summarise(n = n(), .groups="drop")
+ancestry_count$tissue <- factor(ancestry_count$tissue, levels = names_chrom)
+eur <- ancestry_count %>% filter(direction=="EA")
+afr <- ancestry_count %>% filter(direction=="AA")
+
+
+cols_ancestry <- c("EA"="#F0AE21","AA"="#F9DE8B")
+
+direction_plot <- ggplot() +geom_col( data=eur, aes(x=chromHMM, y=n, fill=direction), position="dodge") + 
+  geom_col( data=afr, aes(x=chromHMM, y=-n, fill=direction), position="dodge") +
+  geom_hline(yintercept=0, linetype="dashed", linewidth=0.3) +
+  facet_wrap(~tissue, scales="free_y",nrow=3) + coord_flip() + scale_fill_manual(values=cols_ancestry) +  scale_y_continuous(labels=abs) +
+  ylab("Number of CpGs") +  xlab("") +  theme_bw() +
+  theme(legend.title=element_blank(),
+    legend.position="top",
+    panel.grid.major=element_blank(),
+    panel.grid.minor=element_blank(),
+    panel.border=element_rect(colour="black")
+  )
+
+
+pdf(paste0(project_path,"/Plots/Ancestry_DMP_direction_ChromHMM.pdf"),width=10,height=6)
+print(direction_plot)
+dev.off()
+>>>>>>> 52a0981 (changes 06.03)
