@@ -75,7 +75,8 @@ names(results_DML) <- tissues
 inpath <- "~/marenostrum/Projects/GTEx_v8/Methylation/Tissues/"
 sex_tissues <- c('Ovary','Prostate','Testis')
 for(tissue in tissues){
-  if(!file.exists(paste0(inpath, tissue, "/", tissue, ".Ancestry_DMP.Classification_summary.regmed.rds"))){print(tissue)}
+  #if(!file.exists(paste0(inpath, tissue, "/", tissue, ".Ancestry_DMP.Classification_summary.regmed.rds"))){print(tissue)}
+  if(!file.exists(paste0(inpath, tissue, "/", tissue, ".expr_meth.Classification_summary.regmed.pval_ancestry_continous.rds"))){print(tissue)}
 }
 traits_driven <- c('AGE','EURv1','SEX','BMI')
 tissues <- tissues[tissues !='KidneyCortex']
@@ -86,7 +87,7 @@ d <- lapply(tissues, function(tissue)
     } else {
       #readRDS(paste0(inpath, tissue, "/", trait,".expr_meth.Classification_summary.pval005.rds"))
       #readRDS(paste0(inpath, tissue, "/", trait,".expr_meth.Classification_summary.FDR005.rds"))
-      readRDS(paste0(inpath, tissue, "/", trait,".expr_meth.Classification_summary.regmed.rds"))
+      readRDS(paste0(inpath, tissue, "/", trait,".expr_meth.Classification_summary.regmed.pval_ancestry_continous.rds"))
     }
   }))
 

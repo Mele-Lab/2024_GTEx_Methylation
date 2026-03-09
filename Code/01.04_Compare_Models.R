@@ -216,3 +216,37 @@ pdf('~/cluster//Projects/GTEx_v8/Methylation/Plots/Ancestry_DMP_direction.pdf',
 print(direction_plot)
 dev.off()
 
+
+# plot smoking status per ancesrty ----
+smoking_info <- read.table(paste0(project_path, "Donor_IDs_with_smoking_status.txt"), header = T)
+colnames(smoking_info) <- c("SUBJID", "SmokerStatus", "Smoking")
+tissues <- ctissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate", "BreastMammaryTissue", "MuscleSkeletal", "KidneyCortex", "Testis", "WholeBlood")
+mdata <- do.call(rbind.data.frame, lapply(tissues, function(tissue) readRDS(paste0(project_path, 'Tissues/', tissue, "/metadata.rds"))[,c("SUBJID","Ancestry")]))
+mdata <- mdata[!duplicated(mdata$SUBJID),]
+metadata <- merge(mdata, smoking_info, by='SUBJID')
+
+
+ggplot(metadata[metadata$Ancestry!="AMR",], aes(x=Ancestry, alpha=SmokerStatus))+geom_bar(stat="count", position="fill")+
+  theme(legend.title = element_blank(),
+        axis.text.x = element_text(colour="black", size=12),
+        axis.text.y = element_text(colour="black", size=12),
+        legend.text = element_text(colour="black", size=12),
+        axis.title.x = element_text(size=12),
+        legend.spacing.y = unit(-0.05, "cm"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(colour = "black", linewidth=1), legend.position="top")+theme(legend.position = "right")+ylab("Proportion")
+
+
+# remove AMR and keep AFR/EUR
+df <- metadata[metadata$Ancestry %in% c("AFR","EUR"), ]
+# define smokers (adjust if your labels differ)
+df[df$SmokerStatus == "ex-smoker",]$SmokerStatus <- "non-smoker"
+df$Smoker <- df$SmokerStatus == "smoker"
+tab <- table(df$Ancestry, df$Smoker)
+tab
+
+prop.test(
+  x = tab[, "TRUE"],
+  n = rowSums(tab)
+)

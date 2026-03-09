@@ -355,14 +355,11 @@ for (trait in individual_variables) {
   #we have duplicated symbols therefore we will remove one 
   expr_residuals$gene_symbol <- genes_symbol
   expr_residuals <- expr_residuals[!duplicated(expr_residuals$gene_symbol),]
-  rownames(expr_residuals) <- expr_residuals$genes_symbol
+  expr_residuals <- expr_residuals[!is.na(expr_residuals$gene_symbol),]
+  rownames(expr_residuals) <- expr_residuals$gene_symbol
   expr_residuals <- expr_residuals[,-which(colnames(expr_residuals) == "gene_symbol")]
   
-  print("filter samples with both omics")
-  colnames(expr_residuals) <- sapply(colnames(expr_residuals), function(id) paste0(strsplit(id, "-")[[1]][-3], collapse="-"))
-  #common_cols <- intesect(colnames(expr_residuals), colnames(metadata_exp))
-  expr_residuals <- expr_residuals[,rownames(metadata_exp)]
-  meth_residuals <- meth_residuals[,rownames(metadata)]
+  
   
   
   #identical(metadata$Sample, colnames(exprs_residuals))
@@ -385,6 +382,7 @@ for (trait in individual_variables) {
   cat('\n')
   
   # lm per event ----
+  genes <- rownames(expr_residuals)
   g.lm_models <- sapply(genes, function(g) lm.cis_models(g), simplify = F)
   names(g.lm_models) <-  genes
   # genes that  cannot modelled ----
