@@ -32,44 +32,44 @@ cat(Sys.time(), "\n")
 # # Load annotation (same one used in your working script)
 # # ---------------------------------------------------------
 # 
-# annotation <- fread(paste0(basepath,
-#          "Projects/GTEx_v8/Methylation/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt"))
-# 
-# annotation <- annotation[annotation$Type %in% c("Promoter_Associated","Enhancer_Associated"),]
-# 
-# 
-# # extract chr and pos from Phantom5_Enhancers column
-# annotation[, chr := sub(":.*", "", Phantom5_Enhancers)]
-# annotation[, pos := as.integer(sub(".*:(\\d+)-.*", "\\1", Phantom5_Enhancers))]
-# 
-# #read DMPs
-# dnp_list <-  readRDS(paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/DML_results_5_PEERs_continous.rds"))
-# dmp <- do.call(rbind, Map(function(df, nm) {df$trait <- nm
-# df$cpg <-rownames(df)
-# return(df)}, dnp_list, names(dnp_list)))
-# dmp <- dmp[dmp$adj.P.Val < 0.05,]
-# 
-# # keep enhancers and promoters
-# dmp <- dmp[dmp$cpg %in% annotation$IlmnID, ]
-# cat("Total DMP rows:", nrow(dmp), "\n")
-# 
-# # ---------------------------------------------------------
-# # Add CpG genomic coordinates
-# # ---------------------------------------------------------
-# 
-# dmp <- merge(
-#   dmp,
-#   annotation[, .(IlmnID, chr, pos)],
-#   by.x="cpg",
-#   by.y="IlmnID"
-# )
-# 
-# dmp <- as.data.table(dmp)
-# # ensure chr format matches BSgenome
-# dmp[, chr := paste0("chr", gsub("chr","",chr))]
-# 
-# valid_chr <- paste0("chr", c(1:22,"X","Y"))
-# dmp <- dmp[dmp$chr %in% valid_chr,]
+annotation <- fread(paste0(basepath,
+         "Projects/GTEx_v8/Methylation/Data/Methylation_Epic_gene_promoter_enhancer_processed.txt"))
+
+annotation <- annotation[annotation$Type %in% c("Promoter_Associated","Enhancer_Associated"),]
+
+
+# extract chr and pos from Phantom5_Enhancers column
+annotation[, chr := sub(":.*", "", Phantom5_Enhancers)]
+annotation[, pos := as.integer(sub(".*:(\\d+)-.*", "\\1", Phantom5_Enhancers))]
+
+#read DMPs
+dnp_list <-  readRDS(paste0(basepath, "/Projects/GTEx_v8/Methylation/Tissues/",tissue,"/DML_results_5_PEERs_continous.rds"))
+dmp <- do.call(rbind, Map(function(df, nm) {df$trait <- nm
+df$cpg <-rownames(df)
+return(df)}, dnp_list, names(dnp_list)))
+dmp <- dmp[dmp$adj.P.Val < 0.05,]
+
+# keep enhancers and promoters
+dmp <- dmp[dmp$cpg %in% annotation$IlmnID, ]
+cat("Total DMP rows:", nrow(dmp), "\n")
+
+# ---------------------------------------------------------
+# Add CpG genomic coordinates
+# ---------------------------------------------------------
+
+dmp <- merge(
+  dmp,
+  annotation[, .(IlmnID, chr, pos)],
+  by.x="cpg",
+  by.y="IlmnID"
+)
+
+dmp <- as.data.table(dmp)
+# ensure chr format matches BSgenome
+dmp[, chr := paste0("chr", gsub("chr","",chr))]
+
+valid_chr <- paste0("chr", c(1:22,"X","Y"))
+dmp <- dmp[dmp$chr %in% valid_chr,]
 # 
 # # ----------------------------
 # # Define background CpGs (promoter+enhancer CpGs with coords)
