@@ -87,3 +87,37 @@ ggplot(df_long, aes(x=proportion, y=tissue, alpha=segment)) +
         panel.grid.minor = element_blank(),
         panel.border = element_rect(colour = "black", linewidth=1))
 
+# plot the methyl-sensitive 
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+basepath <- "/Users/mariasopenar/cluster/"
+tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate")
+
+results_list <- list()
+
+for (tissue in tissues) {
+  
+  prefix <- paste0(basepath,
+                   "Projects/GTEx_v8/Methylation/TFBS/meth_sensitive_overlap_",
+                   tissue)
+  
+  prop_ms  <- readRDS(paste0(prefix, "_proportion.rds"))
+  dmp_cpgs <- readRDS(paste0(prefix, "_unique_cpgs_dmp.rds"))
+  cpgs_ms  <- readRDS(paste0(prefix, "_cpgs_ms.rds"))
+  
+  N_total <- length(dmp_cpgs)
+  N_overlap <- length(intersect(dmp_cpgs, cpgs_ms))
+  
+  df <- data.frame(
+    tissue = tissue,
+    p_overlap = N_overlap / N_total,
+    p_no_overlap = 1 - (N_overlap / N_total)
+  )
+  
+  results_list[[tissue]] <- df
+}
+
+df <- bind_rows(results_list)
+
