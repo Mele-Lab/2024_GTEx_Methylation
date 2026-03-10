@@ -81,7 +81,7 @@ dmp <- dmp[dmp$chr %in% valid_chr,]
 
 cat("Generating FASTA...\n")
 
-genome <- BSgenome.Hsapiens.UCSC.hg19
+genome <- BSgenome.Hsapiens.UCSC.hg38
 chr_lengths <- seqlengths(genome)
 
 get_cpg_seq <- function(chr,pos,flank=25){
@@ -109,8 +109,8 @@ valid <- !is.na(seqs)
 dmp <- dmp[valid]
 seqs <- seqs[valid]
 
-fa_file <- paste0(scratch,"FIMO/",tissue,"_CpG.fa")write.fasta( sequences = as.list(seqs),  names = dmp$cpg,  file.out = fa_file, nbchar = 60 )
-
+fa_file <- paste0(scratch,"FIMO/",tissue,"_CpG.fa")
+write.fasta( sequences = as.list(seqs),  names = dmp$cpg,  file.out = fa_file, nbchar = 60 )
 
 # ----------------------------
 # Run FIMO
@@ -122,7 +122,7 @@ system(paste( "fimo --thresh 1e-4 --oc", outdir, motif_file, fa_file ))
 
 fimo <- fread(paste0(outdir, "/fimo.tsv"))
 center <- 26
-fimo <- fimo[q.value < 0.05 & start <= center & stop >= center]
+fimo <- fimo[fimo$`q-value` < 0.05 & fimo$start <= center & fimo$stop >= center]
 cat("Total TFBS hits:", nrow(fimo), "\n")
 
 
@@ -166,7 +166,7 @@ cat("Methylation-sensitive JASPAR motifs matched:", length(meth_sensitive_motif_
 # ----------------------------
 fimo_ms <- fimo[motif_id %in% meth_sensitive_motif_ids]
 cat("Methylation-sensitive motif hits:", nrow(fimo_ms), "\n")
-
+dmp_cpgs <- unique(dmp$cpg)
 cpgs_ms <- unique(fimo_ms$sequence_name)
 cat("Unique DMP CpGs overlapping methylation-sensitive motifs:", length(cpgs_ms), "\n")
 

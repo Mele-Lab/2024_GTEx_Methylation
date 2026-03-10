@@ -217,7 +217,6 @@ print(direction_plot)
 dev.off()
 
 
-<<<<<<< HEAD
 # plot smoking status per ancesrty ----
 smoking_info <- read.table(paste0(project_path, "Donor_IDs_with_smoking_status.txt"), header = T)
 colnames(smoking_info) <- c("SUBJID", "SmokerStatus", "Smoking")
@@ -227,7 +226,7 @@ mdata <- mdata[!duplicated(mdata$SUBJID),]
 metadata <- merge(mdata, smoking_info, by='SUBJID')
 
 
-ggplot(metadata[metadata$Ancestry!="AMR",], aes(x=Ancestry, alpha=SmokerStatus))+geom_bar(stat="count", position="fill")+
+ggplot(metadata[metadata$Ancestry!="AMR",], aes(x=Ancestry, alpha=SmokerStatus))+geom_bar(stat="count", position="fill")+scale_alpha_manual(values=c(0.4, 0.7, 1))+
   theme(legend.title = element_blank(),
         axis.text.x = element_text(colour="black", size=12),
         axis.text.y = element_text(colour="black", size=12),
@@ -236,7 +235,7 @@ ggplot(metadata[metadata$Ancestry!="AMR",], aes(x=Ancestry, alpha=SmokerStatus))
         legend.spacing.y = unit(-0.05, "cm"),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        panel.border = element_rect(colour = "black", linewidth=1), legend.position="top")+theme(legend.position = "right")+ylab("Proportion")
+        panel.border = element_rect(colour = "black", linewidth=1), legend.position="top", panel.background=element_blank())+theme(legend.position = "right")+ylab("Proportion")
 
 
 # remove AMR and keep AFR/EUR
@@ -251,7 +250,7 @@ prop.test(
   x = tab[, "TRUE"],
   n = rowSums(tab)
 )
-=======
+
 # now do it per chromhmm
 
 library(data.table)
@@ -348,4 +347,7 @@ direction_plot <- ggplot() +geom_col( data=eur, aes(x=chromHMM, y=n, fill=direct
 pdf(paste0(project_path,"/Plots/Ancestry_DMP_direction_ChromHMM.pdf"),width=10,height=6)
 print(direction_plot)
 dev.off()
->>>>>>> 52a0981 (changes 06.03)
+
+
+# plot smoking status
+df <- metadata[metadata$Ancestry %in% c("AFR","EUR"), ]
