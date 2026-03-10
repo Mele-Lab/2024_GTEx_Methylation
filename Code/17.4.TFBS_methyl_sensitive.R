@@ -115,7 +115,7 @@ cat(Sys.time(), "\n")
 # # ----------------------------
 # print("Running FIMO...")
 # motif_file <- paste0( scratch, "JASPAR2022_CORE_vertebrates_non-redundant_pfms_meme.txt")
-# outdir <- paste0(scratch, "FIMO/", tissue, "_meth_sensitive")
+outdir <- paste0(scratch, "FIMO/", tissue, "_meth_sensitive")
 # system(paste( "fimo --thresh 1e-4 --oc", outdir, motif_file, fa_file ))
 
 fimo <- fread(paste0(outdir, "/fimo.tsv"))
