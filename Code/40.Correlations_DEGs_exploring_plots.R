@@ -72,7 +72,7 @@ get_corr <- function(tissue, trait){
     model
   }
 }
-DMPs_co <- lapply(c('EURv1','SEX2','AGE','BMI'), function(trait) lapply(tissues, function(tissue) get_corr(tissue, trait)))
+DMPs_Res <- lapply(c('EURv1','SEX2','AGE','BMI'), function(trait) lapply(tissues, function(tissue) get_corr(tissue, trait)))
 names(DMPs_Res) <- c("Ancestry", "Sex", "Age", "BMI")
 for(trait in c("Ancestry", "Sex", "Age", "BMI")){names(DMPs_Res[[trait]]) <- tissues}
 
@@ -343,7 +343,7 @@ get_corr <- function(tissue, trait){
   if(tissue %in% sex_tissues & trait == "SEX2"){
     NA
   }else{
-    model <- readRDS(paste0(project_path, "Tissues/",tissue, "/",trait,'_Correlations_probes_genes_DEG_DMP.rds'))
+    model <- readRDS(paste0(project_path, "/Tissues/",tissue, "/",trait,'_Correlations_probes_genes_DEG_DMP.rds'))
     #rownames(model[[trait]][model[[trait]]$adj.P.Val<0.05,])
     model
   }
@@ -368,7 +368,7 @@ get_corr <- function(tissue, trait){
   if(tissue %in% sex_tissues & trait == "SEX2"){
     NA
   }else{
-    model <- readRDS(paste0(project_path, "Tissues/",tissue, "/",trait,'_Correlations_probes_genes_DEG_DMP.pnominal.rds'))
+    model <- readRDS(paste0(project_path, "/Tissues/",tissue, "/",trait,'_Correlations_probes_genes_DEG_DMP.pnominal.rds'))
     #rownames(model[[trait]][model[[trait]]$adj.P.Val<0.05,])
     model
   }
@@ -916,4 +916,140 @@ g <- ggplot(to_plot_2[to_plot_2$Trait!="BMI",], aes(type, as.numeric(Number), fi
 pdf("~/cluster/Projects/GTEx_v8/Methylation/Plots/DMPs_DEGs.FDR_direction_cpg_site.pdf", width = 10, height = 4)
 g
 dev.off()
+
+
+# plot by annotation extended  
+
+annotation <- readRDS(paste0(project_path,"/Data/EPIC_region_annotation.rds"))
+
+to_plot_1 <- data.frame()
+to_plot_2 <- data.frame()
+
+#cpg_annot <- annotation[, c("Name", "CpG_status")]
+colnames(annotation)[1] <- "probe"
+
+
+cpg_levels <- rev(c( "Intergenic", "Gene_body", "3UTR", "5UTR", "Enhancer", "Promoter_associated", "TSS1500", "TSS200"))
+
+
+for (trait in c("Ancestry","Sex","Age","BMI")) {
+  
+  # Skip Sex for sex-specific tissues no longer needed
+  # since we're merging everything
+  
+  # Merge ALL tissues for this trait
+  pro_all <- do.call(rbind.data.frame,
+                     DMPs_Res[[trait]],
+  )
+  
+  # Keep valid genes
+  pro_all <- pro_all %>%
+    filter(!is.na(gene))
+  
+  # Merge CpG annotation
+  pro_all <- left_join(pro_all, annotation, by = "probe")
+  
+  for (cpg in cpg_levels) {
+    
+    pro_sub <- pro_all %>%
+      filter(region == cpg)
+    
+    if (nrow(pro_sub) == 0) next
+    
+    ### ======================
+    ### FDR
+    ### ======================
+    
+    bg <- length(unique(pro_sub$probe[pro_sub$p.adj < 0.05]))
+    
+    if (bg > 0) {
+      
+      corr <- pro_sub %>%
+        filter(p.adj < 0.05)
+      
+      to_plot_2 <- rbind(
+        to_plot_2,
+        data.frame(
+          N = length(unique(corr$probe[corr$cor > 0])) / bg,
+          type = cpg,
+          Correlation = "Positive",
+          Trait = trait,
+          Number = length(unique(corr$probe[corr$cor > 0]))
+        ),
+        data.frame(
+          N = length(unique(corr$probe[corr$cor < 0])) / bg,
+          type = cpg,
+          Correlation = "Negative",
+          Trait = trait,
+          Number = length(unique(corr$probe[corr$cor < 0]))
+        )
+      )
+    }
+    
+    ### ======================
+    ### Nominal
+    ### ======================
+    
+    bg <- length(unique(pro_sub$probe[pro_sub$p.val < 0.05]))
+    
+    if (bg > 0) {
+      
+      corr <- pro_sub %>%
+        filter(p.val < 0.05)
+      
+      to_plot_1 <- rbind(
+        to_plot_1,
+        data.frame(
+          N = length(unique(corr$probe[corr$cor > 0])) / bg,
+          type = cpg,
+          Correlation = "Positive",
+          Trait = trait,
+          Number = length(unique(corr$probe[corr$cor > 0]))
+        ),
+        data.frame(
+          N = length(unique(corr$probe[corr$cor < 0])) / bg,
+          type = cpg,
+          Correlation = "Negative",
+          Trait = trait,
+          Number = length(unique(corr$probe[corr$cor < 0]))
+        )
+      )
+    }
+  }
+}
+
+# Order CpG levels
+to_plot_1$type <- factor(to_plot_1$type, levels = cpg_levels)
+to_plot_2$type <- factor(to_plot_2$type, levels = cpg_levels)
+
+saveRDS(to_plot_2, paste0(project_path,"Data/correlation_DMP_DEG_cpg_fdr.rds"))
+saveRDS(to_plot_1, paste0(project_path,"Data/correlation_DMP_DEG_cpg_pnom.rds"))
+
+
+to_plot_2 <- readRDS(paste0(project_path,"Data/correlation_DMP_DEG_cpg_fdr.rds" ))
+
+traits_cols <- c('#C49122','#4B8C61','#70A0DF','#A76595')
+names(traits_cols) <- c("Ancestry", "Sex", "Age", "BMI")
+strip <- strip_themed(background_x = elem_list_rect(fill = traits_cols[1:4]))
+to_plot_2$Trait <- factor(to_plot_2$Trait, levels = c("Ancestry", "Sex", "Age", "BMI"))
+
+
+g <- ggplot(to_plot_2[to_plot_2$Trait!="BMI",], aes(type, as.numeric(Number), fill=Correlation)) + 
+  #geom_col(aes(type, N, fill=Correlation), width = 0.9) +
+  geom_bar(stat = 'identity',position = 'fill', alpha=0.8) + 
+  xlab("") +
+  # ylab("% of DMPs correlated with a DEG") +
+  ylab("% of DMPs correlated with a DEG\n in each direction") +
+  scale_fill_manual(values=c("#88CCEE", "#CC6677")) + theme_classic() +
+  theme(axis.title.y = element_text(margin = margin(r = 2), size = 11),
+        axis.text.y = element_text(size = 9, colour = "black"),
+        axis.text.x = element_text(size = 9, colour = "black", angle = 90, vjust = 0.5, hjust=1)) +
+  geom_text(aes(label=Number, y = as.numeric(Number), x = type), position='fill', stat='identity', size=3,hjust=1, angle=20) +
+  #facet_wrap2(~ Trait, strip = strip, nrow = 1, scales = "free_y")
+  facet_wrap2(~ Trait, strip = strip, nrow = 1)
+pdf("~/cluster/Projects/GTEx_v8/Methylation/Plots/DMPs_DEGs.FDR_direction_annot_extended.pdf", width = 10, height = 4)
+g
+dev.off()
+
+
 
