@@ -6,7 +6,6 @@
 
 library(data.table)
 library(dplyr)
-library(BSgenome.Hsapiens.UCSC.hg38)
 library(JASPAR2022)
 library(TFBSTools)
 library(seqinr)
@@ -81,21 +80,20 @@ dmp <- dmp[dmp$chr %in% valid_chr,]
 
 cat("Generating FASTA...\n")
 
+library(BSgenome.Hsapiens.UCSC.hg38)
 genome <- BSgenome.Hsapiens.UCSC.hg38
 chr_lengths <- seqlengths(genome)
 
 get_cpg_seq <- function(chr,pos,flank=25){
   
-  start <- pos-flank
-  end <- pos+flank
+  if(!(chr %in% names(chr_lengths))) return(NA_character_)
   
-  if(start < 1) start <- 1
-  if(end > chr_lengths[chr]) end <- chr_lengths[chr]
+  start <- max(1, pos - flank)
+  end <- min(chr_lengths[[chr]], pos + flank)
   
-  as.character(getSeq(genome,
-                      names=chr,
-                      start=start,
-                      end=end))
+  if(start > end) return(NA_character_)
+  
+  as.character(getSeq(genome, chr, start=start, end=end))
 }
 
 seqs <- vapply(
