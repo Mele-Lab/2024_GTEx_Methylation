@@ -93,7 +93,7 @@ library(tidyr)
 library(ggplot2)
 
 basepath <- "/Users/mariasopenar/cluster/"
-tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate")
+tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate", "BreastMammaryTissue", "KidneyCortex", "Testis", "WholeBlood", "MuscleSkeletal")
 
 results_list <- list()
 
@@ -103,7 +103,8 @@ for (tissue in tissues) {
                    "Projects/GTEx_v8/Methylation/TFBS/meth_sensitive_overlap_",
                    tissue)
   
-  prop_ms  <- readRDS(paste0(prefix, "_proportion.rds"))
+  prop_ms  <- readRDS(paste0(prefix, "proportion.rds"))
+  print(prop_ms)
   dmp_cpgs <- readRDS(paste0(prefix, "_unique_cpgs_dmp.rds"))
   cpgs_ms  <- readRDS(paste0(prefix, "_cpgs_ms.rds"))
   
@@ -113,7 +114,9 @@ for (tissue in tissues) {
   df <- data.frame(
     tissue = tissue,
     p_overlap = N_overlap / N_total,
-    p_no_overlap = 1 - (N_overlap / N_total)
+    p_no_overlap = 1 - (N_overlap / N_total),
+    n_overlap=N_overlap,
+    n_all=N_total
   )
   
   results_list[[tissue]] <- df
@@ -121,3 +124,60 @@ for (tissue in tissues) {
 
 df <- bind_rows(results_list)
 
+library(tidyverse)
+df_long <- df[, c("p_overlap", "p_no_overlap", "tissue")] %>%
+  pivot_longer(-tissue, names_to="segment", values_to="proportion") %>%
+  mutate(segment = recode(segment,
+                          p_overlap = "Overlap methyl-sensitive TFBS",
+                          p_no_overlap = "No overlap"))
+
+df_long$tissue <- factor(df_long$tissue, levels = rev(df$tissue))
+
+
+ggplot(df_long, aes(x = proportion, y = tissue, fill = segment)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(values = c(
+    "No overlap" = "grey",
+    "Overlap methyl-sensitive TFBS" = "#777777"
+  )) +
+  scale_x_continuous(limits = c(0,1)) +
+  theme_bw() +
+  xlab("Proportion of DMP CpGs") +
+  ylab("") +
+  theme(
+    legend.title = element_blank(),
+    axis.text.x = element_text(colour="black", size=13),
+    axis.text.y = element_text(colour="black", size=14),
+    legend.text = element_text(colour="black", size=13),
+    axis.title.x = element_text(size=16),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(colour = "black", linewidth = 1)
+  )
+
+
+df_long <- df[, c("n_overlap", "n_all", "tissue")] %>%
+  pivot_longer(-tissue, names_to="segment", values_to="proportion") %>%
+  mutate(segment = recode(segment,
+                          n_overlap = "Overlap methyl-sensitive TFBS",
+                          n_all = "No overlap"))
+
+ggplot(df_long, aes(x = proportion, y = tissue, fill = segment)) +
+  geom_col(width = 0.7, position="fill") +
+  scale_fill_manual(values = c(
+    "No overlap" = "grey",
+    "Overlap methyl-sensitive TFBS" = "#777777"
+  ))  +
+  theme_bw() +
+  xlab("Proportion of DMP CpGs") +
+  ylab("") +
+  theme(
+    legend.title = element_blank(),
+    axis.text.x = element_text(colour="black", size=13),
+    axis.text.y = element_text(colour="black", size=14),
+    legend.text = element_text(colour="black", size=13),
+    axis.title.x = element_text(size=16),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(colour = "black", linewidth = 1)
+  )
