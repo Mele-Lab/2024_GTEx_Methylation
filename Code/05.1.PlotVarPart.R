@@ -528,7 +528,7 @@ g <- ggplot(results_fisher, aes(x=log2(oddsRatio), y=region, colour=sig)) +
   library(ggpubr)
   p <- ggarrange(g, g2,
                  common.legend = TRUE, legend = "right", widths = c(0.8,0.3))
-  pdf(file = paste0(basepath, "/Projects/GTEx_v8/Methylation/Plots/Enrichment_location_cpg_tissue_variable.pdf"), w = 8, h = 3)
+  pdf(file = paste0(basepath, "/Projects/GTEx_v8/Methylation/Plots/Enrichment_location_cpg_type.pdf"), w = 6.5, h = 3)
   print(p)
   dev.off()
 

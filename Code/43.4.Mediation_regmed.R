@@ -355,8 +355,7 @@ for (trait in individual_variables) {
   #we have duplicated symbols therefore we will remove one 
   expr_residuals$gene_symbol <- genes_symbol
   expr_residuals <- expr_residuals[!duplicated(expr_residuals$gene_symbol),]
-  expr_residuals <- expr_residuals[!is.na(expr_residuals$gene_symbol),]
-  rownames(expr_residuals) <- expr_residuals$gene_symbol
+  rownames(expr_residuals) <- expr_residuals$genes_symbol
   expr_residuals <- expr_residuals[,-which(colnames(expr_residuals) == "gene_symbol")]
   
   
