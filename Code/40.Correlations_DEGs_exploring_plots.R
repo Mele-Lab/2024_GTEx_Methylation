@@ -1033,7 +1033,7 @@ names(traits_cols) <- c("Ancestry", "Sex", "Age", "BMI")
 strip <- strip_themed(background_x = elem_list_rect(fill = traits_cols[1:4]))
 to_plot_2$Trait <- factor(to_plot_2$Trait, levels = c("Ancestry", "Sex", "Age", "BMI"))
 
-
+library(ggh4x)
 g <- ggplot(to_plot_2[to_plot_2$Trait!="BMI",], aes(type, as.numeric(Number), fill=Correlation)) + 
   #geom_col(aes(type, N, fill=Correlation), width = 0.9) +
   geom_bar(stat = 'identity',position = 'fill', alpha=0.8) + 

@@ -169,14 +169,23 @@ plot_overlap<- function(fisher_results){
           panel.border = element_rect(colour = "black", linewidth=1), legend.position="top") +
     scale_y_discrete(breaks=tissues)# + xlim(0, 3)
   return(g1)
+  
 }
 
 p_admixed <- plot_overlap(results_overlap_adimixed)
+pdf(paste0(project_path,"/Plots/overlap_admixed.pdf"), width = 3.42, height = 2.76)
+p_admixed
+dev.off()
 
 p_categorical<- plot_overlap(results_overlap_categorical)
+pdf(paste0(project_path,"/Plots/overlap_p_categorical.pdf"), width = 3.42, height = 2.76)
+p_categorical
+dev.off()
 
 p_smoking<- plot_overlap(results_overlap_smoking)
-
+pdf(paste0(project_path,"/Plots/overlap_p_smoking.pdf"), width = 3.42, height = 2.76)
+p_smoking
+dev.off()
 
 
 # plot directionality of ancestry-DMPs
@@ -226,7 +235,7 @@ mdata <- mdata[!duplicated(mdata$SUBJID),]
 metadata <- merge(mdata, smoking_info, by='SUBJID')
 
 
-ggplot(metadata[metadata$Ancestry!="AMR",], aes(x=Ancestry, alpha=SmokerStatus))+geom_bar(stat="count", position="fill")+scale_alpha_manual(values=c(0.4, 0.7, 1))+
+pl <- ggplot(metadata[metadata$Ancestry!="AMR",], aes(x=Ancestry, alpha=SmokerStatus))+geom_bar(stat="count", position="fill")+scale_alpha_manual(values=c(0.4, 0.7, 1))+
   theme(legend.title = element_blank(),
         axis.text.x = element_text(colour="black", size=12),
         axis.text.y = element_text(colour="black", size=12),
@@ -236,6 +245,11 @@ ggplot(metadata[metadata$Ancestry!="AMR",], aes(x=Ancestry, alpha=SmokerStatus))
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_rect(colour = "black", linewidth=1), legend.position="top", panel.background=element_blank())+theme(legend.position = "right")+ylab("Proportion")
+
+
+pdf(file = paste0(basepath, "/Projects/GTEx_v8/Methylation/Plots/Smoking_status_distribution.pdf"), w = 3.4, h = 2.6)
+print(pl)
+dev.off()
 
 
 # remove AMR and keep AFR/EUR
@@ -344,7 +358,7 @@ direction_plot <- ggplot() +geom_col( data=eur, aes(x=chromHMM, y=n, fill=direct
   )
 
 
-pdf(paste0(project_path,"/Plots/Ancestry_DMP_direction_ChromHMM.pdf"),width=10,height=6)
+pdf(paste0(project_path,"/Plots/Ancestry_DMP_direction_ChromHMM.pdf"),width=8,height=6)
 print(direction_plot)
 dev.off()
 
