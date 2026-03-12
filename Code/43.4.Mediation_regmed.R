@@ -90,8 +90,12 @@ metadata_exp$Donor <- NULL
 
 metadata_exp <- metadata_exp[rownames(metadata_exp) %in% rownames(metadata),]
 metadata <- metadata[rownames(metadata_exp),]
-print(head(metadata))
-print(head(metadata_exp))
+dim(metadata)
+dim(metadata_exp)
+
+
+# print(head(metadata))
+# print(head(metadata_exp))
 
 # Model cpg as:
 # meth_res ~ ieVariants_in_eGene + traits
@@ -270,7 +274,7 @@ for (trait in individual_variables) {
   GTEx_v8 <- lapply(c(tissues), function(t) readRDS(paste0(project_path,'/Data/DEA/', t, "/", t, "DEA_results_Ancestry_continous_.results.rds")))
   names(GTEx_v8) <- tissues
   #GTEx_v8 <- readRDS('~/marenostrum/MN4/bsc83/Projects/ribosomal_proteins/Winona/2022_Ribosomal_analysis/Data/Data_set_1.rds')
-  for(tissue in tissues){names(GTEx_v8[[tissue]]) <- gsub("Ancestry_continous", "Ancestry", names(GTEx_v8[[tissue]]))}
+  for(tis in tissues){names(GTEx_v8[[tis]]) <- gsub("Ancestry_continous", "Ancestry", names(GTEx_v8[[tis]]))}
   
   if (trait == 'EURv1') {
     trait_deg <- 'Ancestry'
@@ -361,7 +365,14 @@ for (trait in individual_variables) {
   
   # keep same colnames for the metadata and the residuals
   colnames(expr_residuals) <- sub("-[0-9]+$", "",  colnames(expr_residuals) )
+  dim(expr_residuals)
+  dim(meth_residuals)
+  dim(metadata)
+  dim(metadata_exp)
   
+  # subset methylation residuals to the common set of donors
+  meth_residuals <- meth_residuals[, rownames(metadata)]
+  expr_residuals <- expr_residuals[, rownames(metadata_exp)]
   
   #identical(metadata$Sample, colnames(exprs_residuals))
   if(!identical(rownames(metadata), colnames(meth_residuals))){

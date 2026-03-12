@@ -244,7 +244,7 @@ p <- ggplot(df_long, aes(x = proportion, y = tissue, fill = trait, alpha=segment
     panel.border = element_rect(colour="black", linewidth=1)
   )
 
-pdf("/Users/mariasopenar/cluster/Projects/GTEx_v8/Methylation/Plots/overlap_methyl_sensitive.pdf",
+pdf("/home/mariasr/cluster/Projects/GTEx_v8/Methylation/Plots/overlap_methyl_sensitive.pdf",
     width = 11.55, height = 3.5)
 print(p)
 dev.off()
