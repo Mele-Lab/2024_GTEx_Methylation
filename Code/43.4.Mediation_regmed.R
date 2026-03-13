@@ -11,8 +11,12 @@ parser <- OptionParser()
 parser <- add_option(parser, opt_str=c("-t", "--tissue"), type="character",
                      dest="tissue",
                      help="Tissue")
+parser <- add_option(parser, opt_str=c("-t", "--tissue"), type="character",
+                     dest="trait",
+                     help="EURv1", "SEX", "AGE", "BMI")
 options=parse_args(parser)
 tissue=options$tissue
+trait <- options$trait
 # tissue <- "Lung"
 
 print(tissue)
@@ -109,7 +113,7 @@ library(caret)
 ###### code for cis-driven expressn
 #### Function to fit  linear model per gene, w and w/ independent cis-eQTL of the eGene ####
 
-lm.cis_models <- function(g){
+lm.cis_models <- function(g, meth_residuals, expr_residuals, metadata, gene_variants.list, trait){
   
   print(paste0("----  ", g, "  ----"))
   
@@ -261,177 +265,177 @@ lm.cis_models <- function(g){
 }
 
 
-for (trait in individual_variables) {
-  print(trait)
-  #### DMAnalysis
-  if (trait == 'SEX') {
-    trait_dmp <- 'SEX2'
-  } else{
-    trait_dmp <- trait
-  }
-  dea_res <- readRDS(paste0(project_path,'Tissues/', tissue,"/DML_results_5_PEERs_continous.rds"))[[trait_dmp]]
-  tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate", "BreastMammaryTissue", "MuscleSkeletal", "KidneyCortex", "Testis", "WholeBlood")
-  GTEx_v8 <- lapply(c(tissues), function(t) readRDS(paste0(project_path,'/Data/DEA/', t, "/", t, "DEA_results_Ancestry_continous_.results.rds")))
-  names(GTEx_v8) <- tissues
-  #GTEx_v8 <- readRDS('~/marenostrum/MN4/bsc83/Projects/ribosomal_proteins/Winona/2022_Ribosomal_analysis/Data/Data_set_1.rds')
-  for(tis in tissues){names(GTEx_v8[[tis]]) <- gsub("Ancestry_continous", "Ancestry", names(GTEx_v8[[tis]]))}
-  
-  if (trait == 'EURv1') {
-    trait_deg <- 'Ancestry'
-  } 
-  if (trait == 'SEX') {
-    trait_deg <- 'Sex'
-  } 
-  if (trait == 'AGE') {
-    trait_deg <- 'Age'
-  } 
-  if (trait == 'BMI') {
-    trait_deg <- 'BMI'
-  }
-  
-  signif <- dea_res[dea_res$P.Value<0.05,]
-  #signif <- dea_res[dea_res$adj.P.Val<0.05,]
-  deg <- rownames(GTEx_v8[[tissue]][[trait_deg]][GTEx_v8[[tissue]][[trait_deg]][['adj.P.Val']]<0.05,])
-  deg_symbol <- (GTEx_v8[[tissue]][[trait_deg]][GTEx_v8[[tissue]][[trait_deg]][['adj.P.Val']]<0.05,"gene.name.x"])
-  
-  Sys.time()
-  data_path <- "/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Data/"
-  #data_path <- "~/marenostrum/Projects/GTEx_v8/Methylation/Data/"
-  annotation <- read.delim(paste0(data_path, "Methylation_Epic_gene_promoter_enhancer_processed.txt"), sep = '\t', header = T)
-  Sys.time()
-  
-  gene_probe <- annotation[annotation$IlmnID %in% rownames(signif),]
-  gene_probe <- gene_probe[gene_probe$UCSC_RefGene_Name %in% deg_symbol,]
-  
-  # Save summary data ----
-  d <- list()
-  d[["Ancestry:DMP"]] <- nrow(signif)
-  d[["Ancestry:DEG"]] <- length(deg)
-  d[["Ancestry:DEG:DMP"]] <- length(unique(gene_probe$UCSC_RefGene_Name))
-  
-  # Print to std.out summary data ----
-  print(paste0("No. of DMPs: ", nrow(signif)))
-  print(paste0("No. of DEGs:  ", length(deg)))
-  print(paste0("No. of DEGs with DMP:  ",  length(unique(gene_probe$UCSC_RefGene_Name))))
-  
-  # Select differentially methylated cpgs with at least 1 independent mQTL ----
-  #dea_res <- signif[rownames(signif) %in% gene_probe$IlmnID,] # i-mCpG
-  
-  expressed_genes <- readRDS(paste0(project_path,'Tissues/',tissue,'/expressed_genes.rds'))
-  expressed_genes_symbol <- gene_annotation$symbol[gene_annotation$gene %in% expressed_genes]
-  
-  # Create 'dictionary' (named list)  ----
-  gene_variants.list <- sapply(unique(gene_probe$UCSC_RefGene_Name), function(x){
-    variant <- unique(gene_probe[gene_probe$UCSC_RefGene_Name==x,]$IlmnID)
-    return(variant)
-  }, simplify=F)
-  
-  print('Finished parsing dictionary')
-  
-  ##### run model #######
 
-  library(limma)
-  
-  genes <- expressed_genes_symbol[expressed_genes_symbol %in% names(gene_variants.list)]
-  betas <- unique(gene_probe[gene_probe$UCSC_RefGene_Name %in% expressed_genes_symbol,]$IlmnID)
-  # Recover the expression residuals associated with DEGs ----
-  meth_residuals <- readRDS(paste0(project_path,'Tissues/', tissue,'/',trait_dmp,"_methylation_residuals.continous.rds"))
-  
-  # Susbet residuals of genes to be modelled ----
-  if(length(betas)==1){
-    meth_residuals <- as.data.frame(t(as.matrix(meth_residuals[betas,])))
-    rownames(meth_residuals) <- betas
-  }else{
-    meth_residuals <- meth_residuals[betas,]    
-  }
-  
-  ## read expression data 
-  # Recover the expression residuals associated with DEGs ----
-  expr_residuals <- readRDS(paste0(project_path,'Tissues/', tissue,'/',trait_dmp,"_expression_residuals.continous.rds"))
-  
-  # Susbet residuals of genes to be modelled ----
-
-  expr_residuals <- as.data.frame((as.matrix(expr_residuals[deg[deg %in% expressed_genes],])))
-  rownames(expr_residuals) <- deg[deg %in% expressed_genes]
-  
-  rownames(gene_annotation) <- gene_annotation$gene
-  genes_symbol <- gene_annotation[rownames(expr_residuals),'symbol']
-  #we have duplicated symbols therefore we will remove one 
-  expr_residuals$gene_symbol <- genes_symbol
-  expr_residuals <- expr_residuals[!duplicated(expr_residuals$gene_symbol),]
-  expr_residuals <- expr_residuals[!is.na(expr_residuals$gene_symbol),]
-  rownames(expr_residuals) <- expr_residuals$gene_symbol
-  expr_residuals <- expr_residuals[,-which(colnames(expr_residuals) == "gene_symbol")]
-  
-  # keep same colnames for the metadata and the residuals
-  colnames(expr_residuals) <- sub("-[0-9]+$", "",  colnames(expr_residuals) )
-  dim(expr_residuals)
-  dim(meth_residuals)
-  dim(metadata)
-  dim(metadata_exp)
-  
-  # subset methylation residuals to the common set of donors
-  meth_residuals <- meth_residuals[, rownames(metadata)]
-  expr_residuals <- expr_residuals[, rownames(metadata_exp)]
-  
-  #identical(metadata$Sample, colnames(exprs_residuals))
-  if(!identical(rownames(metadata), colnames(meth_residuals))){
-    print("The samples in the metadata and the residual data do not coincide")
-    q()
-  }
-  if(!identical(rownames(metadata_exp), colnames(expr_residuals))){
-    print("The donors in the metadata and the expression data do not coincide")
-    q()
-  }
-  
-  # Is the Ancestry effect on the mCpG cis-driven or not cis-driven ----
-  # Is the mCpG cis-driven or not cis-driven ----
-  print('*****************************************************')
-  print(paste0(tissue, ' has a total of ', length(genes), ' DEGs with DMPs p.val < 0.05'))
-  print('Applying glm() function to each of those genes')
-  print('*****************************************************')
-  cat('\n')
-  cat('\n')
-  
-  # lm per event ----
-  genes <- rownames(expr_residuals)
-  g.lm_models <- sapply(genes, function(g) lm.cis_models(g), simplify = F)
-  names(g.lm_models) <-  genes
-  # genes that  cannot modelled ----
-  #d[["Gene:NotModelled"]] <- sum(is.na(g.lm_models))
-  # genes modelled ----
-  g.lm_models <- g.lm_models[!is.na(g.lm_models)] # SNP with no variance or no SNP not correlated
-  d[["Gene:Modelled"]] <- length(g.lm_models)
-  
-  # Compare modelA vs modelB ----
-  deg <- names(g.lm_models)
-  # Anova
-  cis_driven <- sapply(deg, function(g) sum((g.lm_models[[g]][["Mediation_res"]]$`alpha*beta`)!=0))
- 
-  # Parse results data ----
-  results.df <- cbind.data.frame(deg, cis_driven)
-  results.df$Class <- ifelse(results.df$cis_driven == 0, "Not_cis-driven","Cis-driven")
-  
-  
-  # Save ancestry-DEG classified ----
-  saveRDS(results.df,
-          paste0(project_path,'Tissues/',tissue,'/',trait,'_DMP.Classified.regmed.pval.rds'))
-  saveRDS(g.lm_models,
-          paste0(project_path,'Tissues/',tissue,'/',trait,'_DMP.g.lm_models.regmed.pval.rds'))
-  
-  
-  # Report summary ----
-  report_df <- do.call(rbind.data.frame,
-                       lapply(deg, function(gene)
-                         g.lm_models[[gene]][["report_summary"]]))
-  saveRDS(report_df,
-          paste0(project_path,'Tissues/',tissue,'/',trait,'.expr_meth.Report_summary.regmed.pval_ancestry_continous.rds'))
-  
-  # d ----
-  saveRDS(d,
-          paste0(project_path,'Tissues/',tissue,'/',trait,'.expr_meth.Classification_summary.regmed.pval_ancestry_continous.rds'))
-  
+print(trait)
+#### DMAnalysis
+if (trait == 'SEX') {
+  trait_dmp <- 'SEX2'
+} else{
+  trait_dmp <- trait
 }
+dea_res <- readRDS(paste0(project_path,'Tissues/', tissue,"/DML_results_5_PEERs_continous.rds"))[[trait_dmp]]
+tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate", "BreastMammaryTissue", "MuscleSkeletal", "KidneyCortex", "Testis", "WholeBlood")
+GTEx_v8 <- lapply(c(tissues), function(t) readRDS(paste0(project_path,'/Data/DEA/', t, "/", t, "DEA_results_Ancestry_continous_.results.rds")))
+names(GTEx_v8) <- tissues
+#GTEx_v8 <- readRDS('~/marenostrum/MN4/bsc83/Projects/ribosomal_proteins/Winona/2022_Ribosomal_analysis/Data/Data_set_1.rds')
+for(tissue in tissues){names(GTEx_v8[[tissue]]) <- gsub("Ancestry_continous", "Ancestry", names(GTEx_v8[[tissue]]))}
+
+if (trait == 'EURv1') {
+  trait_deg <- 'Ancestry'
+} 
+if (trait == 'SEX') {
+  trait_deg <- 'Sex'
+} 
+if (trait == 'AGE') {
+  trait_deg <- 'Age'
+} 
+if (trait == 'BMI') {
+  trait_deg <- 'BMI'
+}
+
+signif <- dea_res[dea_res$P.Value<0.05,]
+#signif <- dea_res[dea_res$adj.P.Val<0.05,]
+deg <- rownames(GTEx_v8[[tissue]][[trait_deg]][GTEx_v8[[tissue]][[trait_deg]][['adj.P.Val']]<0.05,])
+deg_symbol <- (GTEx_v8[[tissue]][[trait_deg]][GTEx_v8[[tissue]][[trait_deg]][['adj.P.Val']]<0.05,"gene.name.x"])
+
+Sys.time()
+data_path <- "/gpfs/projects/bsc83/Projects/GTEx_v8/Methylation/Data/"
+#data_path <- "~/marenostrum/Projects/GTEx_v8/Methylation/Data/"
+annotation <- read.delim(paste0(data_path, "Methylation_Epic_gene_promoter_enhancer_processed.txt"), sep = '\t', header = T)
+Sys.time()
+
+gene_probe <- annotation[annotation$IlmnID %in% rownames(signif),]
+gene_probe <- gene_probe[gene_probe$UCSC_RefGene_Name %in% deg_symbol,]
+
+# Save summary data ----
+d <- list()
+d[["Ancestry:DMP"]] <- nrow(signif)
+d[["Ancestry:DEG"]] <- length(deg)
+d[["Ancestry:DEG:DMP"]] <- length(unique(gene_probe$UCSC_RefGene_Name))
+
+# Print to std.out summary data ----
+print(paste0("No. of DMPs: ", nrow(signif)))
+print(paste0("No. of DEGs:  ", length(deg)))
+print(paste0("No. of DEGs with DMP:  ",  length(unique(gene_probe$UCSC_RefGene_Name))))
+
+# Select differentially methylated cpgs with at least 1 independent mQTL ----
+#dea_res <- signif[rownames(signif) %in% gene_probe$IlmnID,] # i-mCpG
+
+expressed_genes <- readRDS(paste0(project_path,'Tissues/',tissue,'/expressed_genes.rds'))
+expressed_genes_symbol <- gene_annotation$symbol[gene_annotation$gene %in% expressed_genes]
+
+# Create 'dictionary' (named list)  ----
+gene_variants.list <- sapply(unique(gene_probe$UCSC_RefGene_Name), function(x){
+  variant <- unique(gene_probe[gene_probe$UCSC_RefGene_Name==x,]$IlmnID)
+  return(variant)
+}, simplify=F)
+
+print('Finished parsing dictionary')
+
+##### run model #######
+
+library(limma)
+
+genes <- expressed_genes_symbol[expressed_genes_symbol %in% names(gene_variants.list)]
+betas <- unique(gene_probe[gene_probe$UCSC_RefGene_Name %in% expressed_genes_symbol,]$IlmnID)
+# Recover the expression residuals associated with DEGs ----
+meth_residuals <- readRDS(paste0(project_path,'Tissues/', tissue,'/',trait_dmp,"_methylation_residuals.continous.rds"))
+
+# Susbet residuals of genes to be modelled ----
+if(length(betas)==1){
+  meth_residuals <- as.data.frame(t(as.matrix(meth_residuals[betas,])))
+  rownames(meth_residuals) <- betas
+}else{
+  meth_residuals <- meth_residuals[betas,]    
+}
+
+## read expression data 
+# Recover the expression residuals associated with DEGs ----
+expr_residuals <- readRDS(paste0(project_path,'Tissues/', tissue,'/',trait_dmp,"_expression_residuals.continous.rds"))
+
+# Susbet residuals of genes to be modelled ----
+
+expr_residuals <- as.data.frame((as.matrix(expr_residuals[deg[deg %in% expressed_genes],])))
+rownames(expr_residuals) <- deg[deg %in% expressed_genes]
+
+rownames(gene_annotation) <- gene_annotation$gene
+genes_symbol <- gene_annotation[rownames(expr_residuals),'symbol']
+#we have duplicated symbols therefore we will remove one 
+expr_residuals$gene_symbol <- genes_symbol
+expr_residuals <- expr_residuals[!duplicated(expr_residuals$gene_symbol),]
+expr_residuals <- expr_residuals[!is.na(expr_residuals$gene_symbol),]
+rownames(expr_residuals) <- expr_residuals$gene_symbol
+expr_residuals <- expr_residuals[,-which(colnames(expr_residuals) == "gene_symbol")]
+
+# keep same colnames for the metadata and the residuals
+colnames(expr_residuals) <- sub("-[0-9]+$", "",  colnames(expr_residuals) )
+
+
+#identical(metadata$Sample, colnames(exprs_residuals))
+if(!identical(rownames(metadata), colnames(meth_residuals))){
+  print("The samples in the metadata and the residual data do not coincide")
+  q()
+}
+if(!identical(rownames(metadata_exp), colnames(expr_residuals))){
+  print("The donors in the metadata and the expression data do not coincide")
+  q()
+}
+
+# Is the Ancestry effect on the mCpG cis-driven or not cis-driven ----
+# Is the mCpG cis-driven or not cis-driven ----
+print('*****************************************************')
+print(paste0(tissue, ' has a total of ', length(genes), ' DEGs with DMPs p.val < 0.05'))
+print('Applying glm() function to each of those genes')
+print('*****************************************************')
+cat('\n')
+cat('\n')
+
+# lm per event ----
+genes <- rownames(expr_residuals)
+
+library(parallel)
+
+ncores <- detectCores() - 1 
+g.lm_models <- mclapply(
+  genes,
+  function(g) lm.cis_models(
+    g, meth_residuals, expr_residuals,metadata, gene_variants.list,trait),mc.cores = ncores)
+
+g.lm_models <- sapply(genes, function(g) lm.cis_models(g), simplify = F)
+names(g.lm_models) <-  genes
+# genes that  cannot modelled ----
+#d[["Gene:NotModelled"]] <- sum(is.na(g.lm_models))
+# genes modelled ----
+g.lm_models <- g.lm_models[!is.na(g.lm_models)] # SNP with no variance or no SNP not correlated
+d[["Gene:Modelled"]] <- length(g.lm_models)
+
+# Compare modelA vs modelB ----
+deg <- names(g.lm_models)
+# Anova
+cis_driven <- sapply(deg, function(g) sum((g.lm_models[[g]][["Mediation_res"]]$`alpha*beta`)!=0))
+
+# Parse results data ----
+results.df <- cbind.data.frame(deg, cis_driven)
+results.df$Class <- ifelse(results.df$cis_driven == 0, "Not_cis-driven","Cis-driven")
+
+
+# Save ancestry-DEG classified ----
+saveRDS(results.df,
+        paste0(project_path,'Tissues/',tissue,'/',trait,'_DMP.Classified.regmed.pval.rds'))
+saveRDS(g.lm_models,
+        paste0(project_path,'Tissues/',tissue,'/',trait,'_DMP.g.lm_models.regmed.pval.rds'))
+
+
+# Report summary ----
+report_df <- do.call(rbind.data.frame,
+                     lapply(deg, function(gene)
+                       g.lm_models[[gene]][["report_summary"]]))
+saveRDS(report_df,
+        paste0(project_path,'Tissues/',tissue,'/',trait,'.expr_meth.Report_summary.regmed.pval_ancestry_continous.rds'))
+
+# d ----
+saveRDS(d,
+        paste0(project_path,'Tissues/',tissue,'/',trait,'.expr_meth.Classification_summary.regmed.pval_ancestry_continous.rds'))
 
 
 
