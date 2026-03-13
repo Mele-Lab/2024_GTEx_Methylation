@@ -402,10 +402,10 @@ cat('\n')
 # lm per event ----
 genes <- rownames(expr_residuals)
 
-library(parallel)
+library(pbmcapply)
 
 ncores <- detectCores() - 1 
-g.lm_models <- mclapply(
+g.lm_models <- pbmclapply(
   genes,
   function(g) lm.cis_models(
     g, meth_residuals, expr_residuals,metadata, gene_variants.list,trait),mc.cores = ncores)
