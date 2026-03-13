@@ -11,7 +11,7 @@ parser <- OptionParser()
 parser <- add_option(parser, opt_str=c("-t", "--tissue"), type="character",
                      dest="tissue",
                      help="Tissue")
-parser <- add_option(parser, opt_str=c("-t", "--trait"), type="character",
+parser <- add_option(parser, opt_str=c("-d", "--trait"), type="character",
                      dest="trait",
                      help="EURv1", "SEX", "AGE", "BMI")
 options=parse_args(parser)
