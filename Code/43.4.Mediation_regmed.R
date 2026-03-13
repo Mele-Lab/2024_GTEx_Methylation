@@ -370,16 +370,15 @@ expr_residuals <- expr_residuals[,-which(colnames(expr_residuals) == "gene_symbo
 # keep same colnames for the metadata and the residuals
 colnames(expr_residuals) <- sub("-[0-9]+$", "",  colnames(expr_residuals) )
 
-dim(expr_residuals)
-dim(meth_residuals)
-dim(metadata)
-dim(metadata_exp)
-
 # subset methylation residuals to the common set of donors
 meth_residuals <- meth_residuals[, rownames(metadata)]
 expr_residuals <- expr_residuals[, rownames(metadata_exp)]
 
 
+dim(expr_residuals)
+dim(meth_residuals)
+dim(metadata)
+dim(metadata_exp)
 
 #identical(metadata$Sample, colnames(exprs_residuals))
 if(!identical(rownames(metadata), colnames(meth_residuals))){
@@ -410,8 +409,6 @@ g.lm_models <- mclapply(
   genes,
   function(g) lm.cis_models(
     g, meth_residuals, expr_residuals,metadata, gene_variants.list,trait),mc.cores = ncores)
-
-g.lm_models <- sapply(genes, function(g) lm.cis_models(g), simplify = F)
 names(g.lm_models) <-  genes
 # genes that  cannot modelled ----
 #d[["Gene:NotModelled"]] <- sum(is.na(g.lm_models))
