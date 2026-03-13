@@ -408,7 +408,8 @@ ncores <- detectCores() - 1
 g.lm_models <- pbmclapply(
   genes,
   function(g) lm.cis_models(
-    g, meth_residuals, expr_residuals,metadata, gene_variants.list,trait),mc.cores = ncores)
+    g, meth_residuals, expr_residuals,metadata, gene_variants.list,trait),mc.cores = ncores,  mc.style = "ETA",
+  file = stderr())
 names(g.lm_models) <-  genes
 # genes that  cannot modelled ----
 #d[["Gene:NotModelled"]] <- sum(is.na(g.lm_models))
