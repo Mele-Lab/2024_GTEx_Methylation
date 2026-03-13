@@ -278,7 +278,7 @@ tissues <- c("Lung", "ColonTransverse", "Ovary", "Prostate", "BreastMammaryTissu
 GTEx_v8 <- lapply(c(tissues), function(t) readRDS(paste0(project_path,'/Data/DEA/', t, "/", t, "DEA_results_Ancestry_continous_.results.rds")))
 names(GTEx_v8) <- tissues
 #GTEx_v8 <- readRDS('~/marenostrum/MN4/bsc83/Projects/ribosomal_proteins/Winona/2022_Ribosomal_analysis/Data/Data_set_1.rds')
-for(tissue in tissues){names(GTEx_v8[[tissue]]) <- gsub("Ancestry_continous", "Ancestry", names(GTEx_v8[[tissue]]))}
+for(tis in tissues){names(GTEx_v8[[tis]]) <- gsub("Ancestry_continous", "Ancestry", names(GTEx_v8[[tis]]))}
 
 if (trait == 'EURv1') {
   trait_deg <- 'Ancestry'
@@ -369,6 +369,16 @@ expr_residuals <- expr_residuals[,-which(colnames(expr_residuals) == "gene_symbo
 
 # keep same colnames for the metadata and the residuals
 colnames(expr_residuals) <- sub("-[0-9]+$", "",  colnames(expr_residuals) )
+
+dim(expr_residuals)
+dim(meth_residuals)
+dim(metadata)
+dim(metadata_exp)
+
+# subset methylation residuals to the common set of donors
+meth_residuals <- meth_residuals[, rownames(metadata)]
+expr_residuals <- expr_residuals[, rownames(metadata_exp)]
+
 
 
 #identical(metadata$Sample, colnames(exprs_residuals))
