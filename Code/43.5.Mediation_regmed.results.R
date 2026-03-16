@@ -29,7 +29,7 @@ traits_cols <- c("Age" = "#56B4E9",
 traits <- names(traits_cols)
 
 # Tissues ---
-first_dir <- "~/marenostrum/"
+first_dir <- "~/cluster/"
 
 project_path <- paste0(first_dir, "Projects/GTEx_v8/Methylation/")
 
