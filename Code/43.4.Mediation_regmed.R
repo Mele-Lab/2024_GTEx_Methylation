@@ -404,7 +404,9 @@ genes <- rownames(expr_residuals)
 
 library(pbmcapply)
 
-ncores <- detectCores() - 1 
+ncores <- as.numeric(Sys.getenv("SLURM_CPUS_PER_TASK"))
+if(is.na(ncores)) ncores <- parallel::detectCores() - 1
+
 g.lm_models <- pbmclapply(
   genes,
   function(g) lm.cis_models(
