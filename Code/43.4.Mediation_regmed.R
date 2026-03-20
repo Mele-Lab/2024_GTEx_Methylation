@@ -404,13 +404,20 @@ genes <- rownames(expr_residuals)
 
 library(pbmcapply)
 
-ncores <- as.numeric(Sys.getenv("SLURM_CPUS_PER_TASK"))
-if(is.na(ncores)) ncores <- parallel::detectCores() - 1
+ncores <- min(16, as.numeric(Sys.getenv("SLURM_CPUS_PER_TASK")))
 
-g.lm_models <- pbmclapply(
-  genes,
-  function(g) lm.cis_models(
-    g, meth_residuals, expr_residuals,metadata, gene_variants.list,trait),mc.cores = ncores,  mc.style = "ETA")
+
+library(future.apply)
+
+plan(multicore, workers = ncores)
+chunks <- split(genes, ceiling(seq_along(genes)/50))
+
+g.lm_models <- future_lapply(chunks, function(chunk) {
+  lapply(chunk, function(g) lm.cis_models(
+    g, meth_residuals, expr_residuals, metadata, gene_variants.list, trait
+  ))
+})
+g.lm_models <- unlist(g.lm_models, recursive = FALSE)
 names(g.lm_models) <-  genes
 # genes that  cannot modelled ----
 #d[["Gene:NotModelled"]] <- sum(is.na(g.lm_models))
