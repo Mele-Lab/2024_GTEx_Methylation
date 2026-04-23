@@ -4,6 +4,8 @@ Companion Github Repo for the paper "The impact of sex, age, and genetic ancestr
 Main developer: 
 [@WinonaOliveros](https://github.com/wod31) 
 [@JMiguelRamirez](https://github.com/JMiguelRamirez) 
+[@MariaSopena](https://github.com/mariasr3) 
+[@PauClavell](https://github.com/pclavell) 
 
 This repository contains all of the analysis performed in this paper.
 
